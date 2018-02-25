@@ -152,41 +152,6 @@ type Dir struct {
 	Muidnum uint32 // ID of the last user that modified the file
 }
 
-// Fcall represents a 9P2000 message
-type Fcall struct {
-	FcSize  uint32   // size of the message
-	Type    uint8    // message type
-	Fid     uint32   // file identifier
-	Tag     uint16   // message tag
-	Msize   uint32   // maximum message size (used by Tversion, Rversion)
-	Version string   // protocol version (used by Tversion, Rversion)
-	Oldtag  uint16   // tag of the message to flush (used by Tflush)
-	Error   string   // error (used by Rerror)
-	Qid              // file Qid (used by Rauth, Rattach, Ropen, Rcreate)
-	Iounit  uint32   // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
-	Afid    uint32   // authentication fid (used by Tauth, Tattach)
-	Uname   string   // user name (used by Tauth, Tattach)
-	Aname   string   // attach name (used by Tauth, Tattach)
-	Perm    uint32   // file permission (mode) (used by Tcreate)
-	Name    string   // file name (used by Tcreate)
-	Mode    uint8    // open mode (used by Topen, Tcreate)
-	Newfid  uint32   // the fid that represents the file walked to (used by Twalk)
-	Wname   []string // list of names to walk (used by Twalk)
-	Wqid    []Qid    // list of Qids for the walked files (used by Rwalk)
-	Offset  uint64   // offset in the file to read/write from/to (used by Tread, Twrite)
-	Count   uint32   // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
-	Data    []uint8  // data read/to-write (used by Rread, Twrite)
-	Dir              // file description (used by Rstat, Twstat)
-
-	/* 9P2000.u extensions */
-	Errornum uint32 // error code, 9P2000.u only (used by Rerror)
-	Ext      string // special file description, 9P2000.u only (used by Tcreate)
-	Unamenum uint32 // user ID, 9P2000.u only (used by Tauth, Tattach)
-
-	Pkt []uint8 // raw packet data
-	Buf []uint8 // buffer to put the raw data in
-}
-
 // Interface for accessing users and groups
 type Users interface {
 	Uid2User(uid int) User
@@ -492,38 +457,6 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, b []byte, amt int, err error) {
 
 	return d, b, len(buf) - len(b), nil
 
-}
-
-// Allocates a new Fcall.
-func NewFcall(sz uint32) *Fcall {
-	fc := new(Fcall)
-	fc.Buf = make([]byte, sz)
-
-	return fc
-}
-
-// Sets the tag of a Fcall.
-func SetTag(fc *Fcall, tag uint16) {
-	fc.Tag = tag
-	pint16(tag, fc.Pkt[5:])
-}
-
-func packCommon(fc *Fcall, size int, id uint8) ([]byte, error) {
-	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
-	if len(fc.Buf) < int(size) {
-		return nil, &Error{"buffer too small", EINVAL}
-	}
-
-	fc.FcSize = uint32(size)
-	fc.Type = id
-	fc.Tag = NOTAG
-	p := fc.Buf
-	p = pint32(uint32(size), p)
-	p = pint8(id, p)
-	p = pint16(NOTAG, p)
-	fc.Pkt = fc.Buf[0:size]
-
-	return p, nil
 }
 
 func (err *Error) Error() string {

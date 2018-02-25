@@ -17,7 +17,7 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 	}
 
 	tc := clnt.NewFcall()
-	err := PackTread(tc, fid.Fid, offset, count)
+	err := tc.packTread(fid.Fid, offset, count)
 	if err != nil {
 		return nil, err
 	}

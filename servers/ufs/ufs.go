@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Ufs provides access to a portion of a host systems file system.
+// Ufs serves up a designted portion of the host file system.
 // This fs is primairly for tools or testing and not meant for produciton.
 package ufs
 
@@ -428,7 +428,7 @@ func (*Ufs) Read(req *ninep.SrvReq) {
 		return
 	}
 
-	ninep.InitRread(rc, tc.Count)
+	rc.InitRread(tc.Count)
 	var count int
 	var e error
 	if fid.st.IsDir() {
@@ -482,7 +482,7 @@ func (*Ufs) Read(req *ninep.SrvReq) {
 
 	}
 
-	ninep.SetRreadCount(rc, uint32(count))
+	rc.SetRreadCount(uint32(count))
 	req.Respond()
 }
 

@@ -25,11 +25,11 @@ type SrvReqOps interface {
 func (req *SrvReq) RespondError(err interface{}) {
 	switch e := err.(type) {
 	case *Error:
-		PackRerror(req.Rc, e.Error(), uint32(e.Errornum), req.Conn.Dotu)
+		req.Rc.packRerror(e.Error(), uint32(e.Errornum), req.Conn.Dotu)
 	case error:
-		PackRerror(req.Rc, e.Error(), uint32(EIO), req.Conn.Dotu)
+		req.Rc.packRerror(e.Error(), uint32(EIO), req.Conn.Dotu)
 	default:
-		PackRerror(req.Rc, fmt.Sprintf("%v", e), uint32(EIO), req.Conn.Dotu)
+		req.Rc.packRerror(fmt.Sprintf("%v", e), uint32(EIO), req.Conn.Dotu)
 	}
 
 	req.Respond()
@@ -37,7 +37,7 @@ func (req *SrvReq) RespondError(err interface{}) {
 
 // Respond to the request with Rversion message
 func (req *SrvReq) RespondRversion(msize uint32, version string) {
-	err := PackRversion(req.Rc, msize, version)
+	err := req.Rc.packRversion(msize, version)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -47,7 +47,7 @@ func (req *SrvReq) RespondRversion(msize uint32, version string) {
 
 // Respond to the request with Rauth message
 func (req *SrvReq) RespondRauth(aqid *Qid) {
-	err := PackRauth(req.Rc, aqid)
+	err := req.Rc.packRauth(aqid)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -57,7 +57,7 @@ func (req *SrvReq) RespondRauth(aqid *Qid) {
 
 // Respond to the request with Rflush message
 func (req *SrvReq) RespondRflush() {
-	err := PackRflush(req.Rc)
+	err := req.Rc.packRflush()
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -67,7 +67,7 @@ func (req *SrvReq) RespondRflush() {
 
 // Respond to the request with Rattach message
 func (req *SrvReq) RespondRattach(aqid *Qid) {
-	err := PackRattach(req.Rc, aqid)
+	err := req.Rc.packRattach(aqid)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -77,7 +77,7 @@ func (req *SrvReq) RespondRattach(aqid *Qid) {
 
 // Respond to the request with Rwalk message
 func (req *SrvReq) RespondRwalk(wqids []Qid) {
-	err := PackRwalk(req.Rc, wqids)
+	err := req.Rc.packRwalk(wqids)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -87,7 +87,7 @@ func (req *SrvReq) RespondRwalk(wqids []Qid) {
 
 // Respond to the request with Ropen message
 func (req *SrvReq) RespondRopen(qid *Qid, iounit uint32) {
-	err := PackRopen(req.Rc, qid, iounit)
+	err := req.Rc.packRopen(qid, iounit)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -97,7 +97,7 @@ func (req *SrvReq) RespondRopen(qid *Qid, iounit uint32) {
 
 // Respond to the request with Rcreate message
 func (req *SrvReq) RespondRcreate(qid *Qid, iounit uint32) {
-	err := PackRcreate(req.Rc, qid, iounit)
+	err := req.Rc.packRcreate(qid, iounit)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -107,7 +107,7 @@ func (req *SrvReq) RespondRcreate(qid *Qid, iounit uint32) {
 
 // Respond to the request with Rread message
 func (req *SrvReq) RespondRread(data []byte) {
-	err := PackRread(req.Rc, data)
+	err := req.Rc.packRread(data)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -117,7 +117,7 @@ func (req *SrvReq) RespondRread(data []byte) {
 
 // Respond to the request with Rwrite message
 func (req *SrvReq) RespondRwrite(count uint32) {
-	err := PackRwrite(req.Rc, count)
+	err := req.Rc.packRwrite(count)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -127,7 +127,7 @@ func (req *SrvReq) RespondRwrite(count uint32) {
 
 // Respond to the request with Rclunk message
 func (req *SrvReq) RespondRclunk() {
-	err := PackRclunk(req.Rc)
+	err := req.Rc.packRclunk()
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -137,7 +137,7 @@ func (req *SrvReq) RespondRclunk() {
 
 // Respond to the request with Rremove message
 func (req *SrvReq) RespondRremove() {
-	err := PackRremove(req.Rc)
+	err := req.Rc.packRremove()
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -147,7 +147,7 @@ func (req *SrvReq) RespondRremove() {
 
 // Respond to the request with Rstat message
 func (req *SrvReq) RespondRstat(st *Dir) {
-	err := PackRstat(req.Rc, st, req.Conn.Dotu)
+	err := req.Rc.packRstat(st, req.Conn.Dotu)
 	if err != nil {
 		req.RespondError(err)
 	} else {
@@ -157,7 +157,7 @@ func (req *SrvReq) RespondRstat(st *Dir) {
 
 // Respond to the request with Rwstat message
 func (req *SrvReq) RespondRwstat() {
-	err := PackRwstat(req.Rc)
+	err := req.Rc.packRwstat()
 	if err != nil {
 		req.RespondError(err)
 	} else {

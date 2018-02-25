@@ -151,7 +151,7 @@ func (*Nullfs) Read(req *ninep.SrvReq) {
 	tc := req.Tc
 	rc := req.Rc
 
-	ninep.InitRread(rc, tc.Count)
+	rc.InitRread(tc.Count)
 
 	// convert our directory to byte buffer; we aren't caching
 	b := ninep.PackDir(&root.Dir, req.Conn.Dotu)
@@ -168,7 +168,7 @@ func (*Nullfs) Read(req *ninep.SrvReq) {
 	}
 	copy(rc.Data, b[tc.Offset:int(tc.Offset)+count])
 	log.Printf("buf:%v, rc.Data: %v, off:%v,  count:%v\n", len(b), len(rc.Data), tc.Offset, count)
-	ninep.SetRreadCount(rc, uint32(count))
+	rc.SetRreadCount(uint32(count))
 	req.Respond()
 }
 

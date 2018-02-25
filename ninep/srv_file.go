@@ -407,7 +407,7 @@ func (*Fsrv) Read(req *SrvReq) {
 	f := fid.F
 	tc := req.Tc
 	rc := req.Rc
-	InitRread(rc, tc.Count)
+	rc.InitRread(tc.Count)
 
 	if f.Mode&DMDIR != 0 {
 		// Get all the directory entries and
@@ -452,7 +452,7 @@ func (*Fsrv) Read(req *SrvReq) {
 		}
 	}
 
-	SetRreadCount(rc, uint32(n))
+	rc.SetRreadCount(uint32(n))
 	req.Respond()
 }
 

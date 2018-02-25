@@ -13,7 +13,7 @@ import (
 func (clnt *Clnt) Auth(user User, aname string) (*Fid, error) {
 	fid := clnt.FidAlloc()
 	tc := clnt.NewFcall()
-	err := PackTauth(tc, fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
+	err := tc.packTauth(fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (clnt *Clnt) Attach(afid *Fid, user User, aname string) (*Fid, error) {
 
 	fid := clnt.FidAlloc()
 	tc := clnt.NewFcall()
-	err := PackTattach(tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
+	err := tc.packTattach(fid.Fid, afno, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}

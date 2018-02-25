@@ -9,7 +9,7 @@ func (clnt *Clnt) Clunk(fid *Fid) (err error) {
 	err = nil
 	if fid.walked {
 		tc := clnt.NewFcall()
-		err := PackTclunk(tc, fid.Fid)
+		err := tc.packTclunk(fid.Fid)
 		if err != nil {
 			return err
 		}

@@ -175,7 +175,7 @@ func (conn *Conn) send() {
 			return
 
 		case req := <-conn.reqout:
-			SetTag(req.Rc, req.Tc.Tag)
+			req.Rc.SetTag(req.Tc.Tag)
 			conn.Lock()
 			conn.rsz += uint64(req.Rc.FcSize)
 			conn.npend--

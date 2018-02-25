@@ -14,7 +14,7 @@ import (
 // Qid for each walked name is returned.
 func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]Qid, error) {
 	tc := clnt.NewFcall()
-	err := PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
+	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 		}
 
 		tc := clnt.NewFcall()
-		err = PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n])
+		err = tc.packTwalk(fid.Fid, newfid.Fid, wnames[0:n])
 		if err != nil {
 			goto error
 		}

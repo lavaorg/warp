@@ -8,7 +8,7 @@ package ninep
 // operation is successful.
 func (clnt *Clnt) Remove(fid *Fid) error {
 	tc := clnt.NewFcall()
-	err := PackTremove(tc, fid.Fid)
+	err := tc.packTremove(fid.Fid)
 	if err != nil {
 		return err
 	}

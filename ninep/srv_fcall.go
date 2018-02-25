@@ -144,7 +144,7 @@ func (srv *Srv) attachPost(req *SrvReq) {
 func (srv *Srv) flush(req *SrvReq) {
 	conn := req.Conn
 	tag := req.Tc.Oldtag
-	PackRflush(req.Rc)
+	req.Rc.packRflush()
 	conn.Lock()
 	r := conn.reqs[tag]
 	if r != nil {
@@ -304,7 +304,7 @@ func (srv *Srv) read(req *SrvReq) {
 		var n int
 
 		rc := req.Rc
-		err := InitRread(rc, tc.Count)
+		err := rc.InitRread(tc.Count)
 		if err != nil {
 			req.RespondError(err)
 			return
@@ -317,7 +317,7 @@ func (srv *Srv) read(req *SrvReq) {
 				return
 			}
 
-			SetRreadCount(rc, uint32(n))
+			rc.SetRreadCount(uint32(n))
 			req.Respond()
 		} else {
 			req.RespondError(Enotimpl)

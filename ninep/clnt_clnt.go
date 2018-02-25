@@ -92,7 +92,7 @@ func (clnt *Clnt) Rpcnb(r *Req) error {
 		tag = r.tag
 	}
 
-	SetTag(r.Tc, tag)
+	r.Tc.SetTag(tag)
 	clnt.Lock()
 	if clnt.err != nil {
 		clnt.Unlock()
@@ -356,7 +356,7 @@ func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, error) {
 
 	clntmsize := atomic.LoadUint32(&clnt.Msize)
 	tc := NewFcall(clntmsize)
-	err := PackTversion(tc, clntmsize, ver)
+	err := tc.packTversion(clntmsize, ver)
 	if err != nil {
 		return nil, err
 	}

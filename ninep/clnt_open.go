@@ -12,7 +12,7 @@ import (
 // the operation is successful.
 func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 	tc := clnt.NewFcall()
-	err := PackTopen(tc, fid.Fid, mode)
+	err := tc.packTopen(fid.Fid, mode)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 // if the operation is successful.
 func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
 	tc := clnt.NewFcall()
-	err := PackTcreate(tc, fid.Fid, name, perm, mode, ext, clnt.Dotu)
+	err := tc.packTcreate(fid.Fid, name, perm, mode, ext, clnt.Dotu)
 	if err != nil {
 		return err
 	}

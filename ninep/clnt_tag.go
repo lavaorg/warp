@@ -99,7 +99,7 @@ func (tag *Tag) reqproc() {
 func (tag *Tag) Auth(afid *Fid, user User, aname string) error {
 	req := tag.reqAlloc()
 	req.fid = afid
-	err := PackTauth(req.Tc, afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
+	err := req.Tc.packTauth(afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (tag *Tag) Attach(fid, afid *Fid, user User, aname string) error {
 
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTattach(req.Tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
+	err := req.Tc.packTattach(fid.Fid, afno, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 		newfid.Qid = fid.Qid
 	}
 
-	err := PackTwalk(req.Tc, fid.Fid, newfid.Fid, wnames)
+	err := req.Tc.packTwalk(fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 func (tag *Tag) Open(fid *Fid, mode uint8) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTopen(req.Tc, fid.Fid, mode)
+	err := req.Tc.packTopen(fid.Fid, mode)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (tag *Tag) Open(fid *Fid, mode uint8) error {
 func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTcreate(req.Tc, fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
+	err := req.Tc.packTcreate(fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext strin
 func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTread(req.Tc, fid.Fid, offset, count)
+	err := req.Tc.packTread(fid.Fid, offset, count)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
 func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTwrite(req.Tc, fid.Fid, offset, uint32(len(data)), data)
+	err := req.Tc.packTwrite(fid.Fid, offset, uint32(len(data)), data)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
 func (tag *Tag) Clunk(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTclunk(req.Tc, fid.Fid)
+	err := req.Tc.packTclunk(fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (tag *Tag) Clunk(fid *Fid) error {
 func (tag *Tag) Remove(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTremove(req.Tc, fid.Fid)
+	err := req.Tc.packTremove(fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func (tag *Tag) Remove(fid *Fid) error {
 func (tag *Tag) Stat(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTstat(req.Tc, fid.Fid)
+	err := req.Tc.packTstat(fid.Fid)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (tag *Tag) Stat(fid *Fid) error {
 func (tag *Tag) Wstat(fid *Fid, dir *Dir) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := PackTwstat(req.Tc, fid.Fid, dir, tag.clnt.Dotu)
+	err := req.Tc.packTwstat(fid.Fid, dir, tag.clnt.Dotu)
 	if err != nil {
 		return err
 	}

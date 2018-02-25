@@ -7,7 +7,7 @@ package ninep
 // Returns the metadata for the file associated with the Fid, or an Error.
 func (clnt *Clnt) Stat(fid *Fid) (*Dir, error) {
 	tc := clnt.NewFcall()
-	err := PackTstat(tc, fid.Fid)
+	err := tc.packTstat(fid.Fid)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (clnt *Clnt) FStat(path string) (*Dir, error) {
 // Modifies the data of the file associated with the Fid, or an Error.
 func (clnt *Clnt) Wstat(fid *Fid, dir *Dir) error {
 	tc := clnt.NewFcall()
-	err := PackTwstat(tc, fid.Fid, dir, clnt.Dotu)
+	err := tc.packTwstat(fid.Fid, dir, clnt.Dotu)
 	if err != nil {
 		return err
 	}
