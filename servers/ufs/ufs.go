@@ -265,7 +265,7 @@ func (*Ufs) FidDestroy(sfid *ninep.SrvFid) {
 
 func (ufs *Ufs) Attach(req *ninep.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(ninep.Enoauth)
+		req.RespondError(ninep.Err(ninep.Enoauth))
 		return
 	}
 
@@ -312,7 +312,7 @@ func (*Ufs) Walk(req *ninep.SrvReq) {
 		st, err := os.Lstat(p)
 		if err != nil {
 			if i == 0 {
-				req.RespondError(ninep.Enoent)
+				req.RespondError(ninep.Err(ninep.Enotexist))
 				return
 			}
 
@@ -373,7 +373,7 @@ func (*Ufs) Create(req *ninep.SrvReq) {
 
 		ofid := req.Conn.FidGet(uint32(n))
 		if ofid == nil {
-			req.RespondError(ninep.Eunknownfid)
+			req.RespondError(ninep.Err(ninep.Eunknownfid))
 			return
 		}
 
@@ -382,7 +382,7 @@ func (*Ufs) Create(req *ninep.SrvReq) {
 
 	case tc.Perm&ninep.DMNAMEDPIPE != 0:
 	case tc.Perm&ninep.DMDEVICE != 0:
-		req.RespondError(&ninep.Error{"not implemented", ninep.EIO})
+		req.RespondError(ninep.Err(ninep.Enotimpl))
 		return
 
 	default:

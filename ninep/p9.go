@@ -9,6 +9,7 @@
 package ninep
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -117,10 +118,37 @@ const (
 	EINVAL  = 22
 )
 
+// errors similar to plan9port
+const (
+	Eperm       = "permission denied"
+	Enotdir     = "not a directory"
+	Enoauth     = "upas/fs: authentication not required"
+	Enotexist   = "file does not exist"
+	Einuse      = "file in use"
+	Eexist      = "file exists"
+	Enotowner   = "not owner"
+	Eisopen     = "file already open for I/O"
+	Excl        = "exclusive use file already open"
+	Ename       = "illegal name"
+	Ebadctl     = "unknown control message"
+	Eunknownfid = "unknown fid"
+	Ebaduse     = "bad use of fid"
+	Eopen       = "fid already opened"
+	Etoolarge   = "i/o count too large"
+	Ebadoffset  = "bad offset in directory read"
+	Edirchange  = "cannot convert between files and directories"
+	Enouser     = "unknown user"
+	Enotimpl    = "not implemented"
+)
+
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
 	Err      string // textual representation of the error
 	Errornum uint32 // numeric representation of the error (9P2000.u)
+}
+
+func Err(s string) error {
+	return errors.New(s)
 }
 
 // File identifier

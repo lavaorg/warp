@@ -4,8 +4,6 @@
 
 package ninep
 
-import "fmt"
-
 // SrvRequest operations. This interface should be implemented by all file servers.
 // The operations correspond directly to most of the 9P2000 message types.
 type SrvReqOps interface {
@@ -22,16 +20,9 @@ type SrvReqOps interface {
 }
 
 // Respond to the request with Rerror message
-func (req *SrvReq) RespondError(err interface{}) {
-	switch e := err.(type) {
-	case *Error:
-		req.Rc.packRerror(e.Error(), uint32(e.Errornum), req.Conn.Dotu)
-	case error:
-		req.Rc.packRerror(e.Error(), uint32(EIO), req.Conn.Dotu)
-	default:
-		req.Rc.packRerror(fmt.Sprintf("%v", e), uint32(EIO), req.Conn.Dotu)
-	}
+func (req *SrvReq) RespondError(err error) {
 
+	req.Rc.packRerror(err.Error(), uint32(EIO), req.Conn.Dotu)
 	req.Respond()
 }
 

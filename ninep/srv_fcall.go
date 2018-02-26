@@ -45,13 +45,13 @@ func (srv *Srv) auth(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 	if tc.Afid == NOFID {
-		req.RespondError(Eunknownfid)
+		req.RespondError(Err(Eunknownfid))
 		return
 	}
 
 	req.Afid = conn.FidNew(tc.Afid)
 	if req.Afid == nil {
-		req.RespondError(Einuse)
+		req.RespondError(Err(Einuse))
 		return
 	}
 
@@ -63,7 +63,7 @@ func (srv *Srv) auth(req *SrvReq) {
 	}
 
 	if user == nil {
-		req.RespondError(Enouser)
+		req.RespondError(Err(Enouser))
 		return
 	}
 
@@ -78,7 +78,7 @@ func (srv *Srv) auth(req *SrvReq) {
 			req.RespondRauth(aqid)
 		}
 	} else {
-		req.RespondError(Enoauth)
+		req.RespondError(Err(Enoauth))
 	}
 
 }
@@ -93,20 +93,20 @@ func (srv *Srv) attach(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 	if tc.Fid == NOFID {
-		req.RespondError(Eunknownfid)
+		req.RespondError(Err(Eunknownfid))
 		return
 	}
 
 	req.Fid = conn.FidNew(tc.Fid)
 	if req.Fid == nil {
-		req.RespondError(Einuse)
+		req.RespondError(Err(Einuse))
 		return
 	}
 
 	if tc.Afid != NOFID {
 		req.Afid = conn.FidGet(tc.Afid)
 		if req.Afid == nil {
-			req.RespondError(Eunknownfid)
+			req.RespondError(Err(Eunknownfid))
 		}
 	}
 
@@ -118,7 +118,7 @@ func (srv *Srv) attach(req *SrvReq) {
 	}
 
 	if user == nil {
-		req.RespondError(Enouser)
+		req.RespondError(Err(Enouser))
 		return
 	}
 
@@ -183,20 +183,20 @@ func (srv *Srv) walk(req *SrvReq) {
 
 	/* we can't walk regular files, only clone them */
 	if len(tc.Wname) > 0 && (fid.Type&QTDIR) == 0 {
-		req.RespondError(Enotdir)
+		req.RespondError(Err(Enotdir))
 		return
 	}
 
 	/* we can't walk open files */
 	if fid.opened {
-		req.RespondError(Ebaduse)
+		req.RespondError(Err(Ebaduse))
 		return
 	}
 
 	if tc.Fid != tc.Newfid {
 		req.Newfid = conn.FidNew(tc.Newfid)
 		if req.Newfid == nil {
-			req.RespondError(Einuse)
+			req.RespondError(Err(Einuse))
 			return
 		}
 
@@ -237,12 +237,12 @@ func (srv *Srv) open(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
 	if fid.opened {
-		req.RespondError(Eopen)
+		req.RespondError(Err(Eopen))
 		return
 	}
 
 	if (fid.Type&QTDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Eperm)
+		req.RespondError(Err(Eperm))
 		return
 	}
 
@@ -260,24 +260,24 @@ func (srv *Srv) create(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
 	if fid.opened {
-		req.RespondError(Eopen)
+		req.RespondError(Err(Eopen))
 		return
 	}
 
 	if (fid.Type & QTDIR) == 0 {
-		req.RespondError(Enotdir)
+		req.RespondError(Err(Enotdir))
 		return
 	}
 
 	/* can't open directories for other than reading */
 	if (tc.Perm&DMDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Eperm)
+		req.RespondError(Err(Eperm))
 		return
 	}
 
 	/* can't create special files if not 9P2000.u */
 	if (tc.Perm&(DMNAMEDPIPE|DMSYMLINK|DMLINK|DMDEVICE|DMSOCKET)) != 0 && !req.Conn.Dotu {
-		req.RespondError(Eperm)
+		req.RespondError(Err(Eperm))
 		return
 	}
 
@@ -296,7 +296,7 @@ func (srv *Srv) read(req *SrvReq) {
 	tc := req.Tc
 	fid := req.Fid
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Etoolarge)
+		req.RespondError(Err(Etoolarge))
 		return
 	}
 
@@ -320,7 +320,7 @@ func (srv *Srv) read(req *SrvReq) {
 			rc.SetRreadCount(uint32(n))
 			req.Respond()
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(Err(Enotimpl))
 		}
 
 		return
@@ -356,19 +356,19 @@ func (srv *Srv) write(req *SrvReq) {
 				req.RespondRwrite(uint32(n))
 			}
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(Err(Enotimpl))
 		}
 
 		return
 	}
 
 	if !fid.opened || (fid.Type&QTDIR) != 0 || (fid.Omode&3) == OREAD {
-		req.RespondError(Ebaduse)
+		req.RespondError(Err(Ebaduse))
 		return
 	}
 
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Etoolarge)
+		req.RespondError(Err(Etoolarge))
 		return
 	}
 
@@ -382,7 +382,7 @@ func (srv *Srv) clunk(req *SrvReq) {
 			op.AuthDestroy(fid)
 			req.RespondRclunk()
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(Err(Enotimpl))
 		}
 
 		return
@@ -413,7 +413,7 @@ func (srv *Srv) wstat(req *SrvReq) {
 		d := &req.Tc.Dir
 		if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
 			d.Path != uint64(0xFFFFFFFFFFFFFFFF) {
-			req.RespondError(Eperm)
+			req.RespondError(Err(Eperm))
 			return
 		}
 

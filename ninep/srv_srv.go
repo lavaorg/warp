@@ -21,19 +21,6 @@ const (
 	reqSaved                             /* no response was produced after the request is worked on */
 )
 
-var Eunknownfid error = &Error{"unknown fid", EINVAL}
-var Enoauth error = &Error{"no authentication required", EINVAL}
-var Einuse error = &Error{"fid already in use", EINVAL}
-var Ebaduse error = &Error{"bad use of fid", EINVAL}
-var Eopen error = &Error{"fid already opened", EINVAL}
-var Enotdir error = &Error{"not a directory", ENOTDIR}
-var Eperm error = &Error{"permission denied", EPERM}
-var Etoolarge error = &Error{"i/o count too large", EINVAL}
-var Ebadoffset error = &Error{"bad offset in directory read", EINVAL}
-var Edirchange error = &Error{"cannot convert between files and directories", EINVAL}
-var Enouser error = &Error{"unknown user", EINVAL}
-var Enotimpl error = &Error{"not implemented", EINVAL}
-
 // Authentication operations. The file server should implement them if
 // it requires user authentication. The authentication in 9P2000 is
 // done by creating special authentication fids and performing I/O
@@ -270,7 +257,7 @@ func (req *SrvReq) Process() {
 		req.Fid = conn.FidGet(tc.Fid)
 		srv.Unlock()
 		if req.Fid == nil {
-			req.RespondError(Eunknownfid)
+			req.RespondError(Err(Eunknownfid))
 			return
 		}
 	}

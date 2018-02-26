@@ -85,7 +85,7 @@ func (*Nullfs) FidDestroy(sfid *ninep.SrvFid) {
 
 func (ufs *Nullfs) Attach(req *ninep.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(ninep.Enoauth)
+		req.RespondError(ninep.Err(ninep.Enoauth))
 		return
 	}
 	//tc := req.Tc
@@ -103,7 +103,7 @@ func (*Nullfs) Walk(req *ninep.SrvReq) {
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError("bad fid")
+		req.RespondError(ninep.Err(ninep.Ebaduse))
 		return
 	}
 
@@ -111,15 +111,15 @@ func (*Nullfs) Walk(req *ninep.SrvReq) {
 		req.Newfid.Aux = new(nullfsFid)
 	}
 
-	// there are no entries so if path is not "." or ".." return an error
+	// there are no entries so if path is not "." or ".." or "/" return an error
 	// "." and ".." by definition are alias for the current node, so valid.
 	if len(tc.Wname) != 1 {
-		req.RespondError(ninep.Enoent)
+		req.RespondError(ninep.Err(ninep.Enotexist)) //ninep.Enoent)
 		return
 	}
 	p := tc.Wname[0]
-	if p != "." && p != ".." {
-		req.RespondError(ninep.Enoent)
+	if p != "." && p != ".." && p != "/" {
+		req.RespondError(ninep.Err(ninep.Enotexist))
 		return
 	}
 
@@ -135,7 +135,7 @@ func (*Nullfs) Open(req *ninep.SrvReq) {
 	tc := req.Tc
 	mode := tc.Mode
 	if mode != ninep.OREAD {
-		req.RespondError(ninep.EIO)
+		req.RespondError(ninep.Err(ninep.Eperm))
 		return
 	}
 
@@ -144,7 +144,7 @@ func (*Nullfs) Open(req *ninep.SrvReq) {
 
 func (*Nullfs) Create(req *ninep.SrvReq) {
 	// no creation
-	req.RespondError(&ninep.Error{"not supported", ninep.EIO})
+	req.RespondError(ninep.Err(ninep.Enotimpl))
 }
 
 func (*Nullfs) Read(req *ninep.SrvReq) {

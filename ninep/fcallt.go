@@ -3,7 +3,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Fcall is the structure to hold contents for an on-the-wire message to/from a 9p server.
 package ninep
 
 // Create a Tversion message in the specified Fcall.
