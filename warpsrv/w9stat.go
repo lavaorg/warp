@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/ninep"
+import "github.com/lavaorg/warp9/warp9"
 
 // The FStatOp interface provides a single operation (Stat) that will be
 // called before a file stat is sent back to the client. If implemented,
@@ -18,10 +18,10 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*W9Fid, *ninep.Dir) error
+	Wstat(*W9Fid, *warp9.Dir) error
 }
 
-func (*W9Srv) Stat(req *ninep.SrvReq) {
+func (*W9Srv) Stat(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 
@@ -37,7 +37,7 @@ func (*W9Srv) Stat(req *ninep.SrvReq) {
 	}
 }
 
-func (*W9Srv) Wstat(req *ninep.SrvReq) {
+func (*W9Srv) Wstat(req *warp9.SrvReq) {
 	tc := req.Tc
 	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
@@ -50,6 +50,6 @@ func (*W9Srv) Wstat(req *ninep.SrvReq) {
 			req.RespondRwstat()
 		}
 	} else {
-		req.RespondError(ninep.Err(ninep.Eperm))
+		req.RespondError(warp9.Err(warp9.Eperm))
 	}
 }

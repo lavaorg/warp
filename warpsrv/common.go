@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lavaorg/warp9/ninep"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 type FFlags int
@@ -19,7 +19,7 @@ const (
 // The srvFile type represents a file (or directory) served by the file server.
 type W9File struct {
 	sync.Mutex
-	ninep.Dir
+	warp9.Dir
 	flags FFlags
 
 	Parent *W9File // parent
@@ -32,7 +32,7 @@ type W9File struct {
 // A server representation of a client
 type W9Fid struct {
 	F       *W9File
-	Fid     *ninep.SrvFid
+	Fid     *warp9.SrvFid
 	dirs    []*W9File // used for readdir
 	dirents []byte    // serialized version of dirs
 }
@@ -40,7 +40,7 @@ type W9Fid struct {
 // W9Srv provides a framework for creating synthetic file systems. The file system
 // is in memory, active, and can be multi-level.
 type W9Srv struct {
-	ninep.Srv
+	warp9.Srv
 	Root *W9File
 }
 
@@ -58,7 +58,7 @@ func NewW9Srv(root *W9File) *W9Srv {
 
 // Initializes the fields of a file and add it to a directory.
 // Returns nil if successful, or an error.
-func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, mode uint32, ops interface{}) error {
+func (f *W9File) Add(dir *W9File, name string, uid warp9.User, gid warp9.Group, mode uint32, ops interface{}) error {
 
 	lock.Lock()
 	qpath := qnext
@@ -78,7 +78,7 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		f.Uidnum = uint32(uid.Id()) //9P2000.u
 	} else {
 		f.Uid = "none"
-		f.Uidnum = ninep.NOUID //9P2000.u
+		f.Uidnum = warp9.NOUID //9P2000.u
 	}
 
 	if gid != nil {
@@ -86,11 +86,11 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		f.Gidnum = uint32(gid.Id()) //9P2000.u
 	} else {
 		f.Gid = "none"
-		f.Gidnum = ninep.NOUID //9P2000.u
+		f.Gidnum = warp9.NOUID //9P2000.u
 	}
 
 	f.Muid = ""
-	f.Muidnum = ninep.NOUID
+	f.Muidnum = warp9.NOUID
 	f.Ext = ""
 
 	// add f as entry in dir
@@ -100,7 +100,7 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		for p := dir.cfirst; p != nil; p = p.next {
 			if name == p.Name {
 				dir.Unlock()
-				return ninep.Err(ninep.Eexist)
+				return warp9.Err(warp9.Eexist)
 			}
 		}
 
@@ -158,7 +158,7 @@ func (f *W9File) Rename(name string) error {
 	defer p.Unlock()
 	for c := p.cfirst; c != nil; c = c.next {
 		if name == c.Name {
-			return ninep.Err(ninep.Eexist)
+			return warp9.Err(warp9.Eexist)
 		}
 	}
 
@@ -183,7 +183,7 @@ func (p *W9File) Find(name string) *W9File {
 // Checks if the specified user has permission to perform
 // certain operation on a file. Perm contains one or more
 // of DMREAD, DMWRITE, and DMEXEC.
-func (f *W9File) CheckPerm(user ninep.User, perm uint32) bool {
+func (f *W9File) CheckPerm(user warp9.User, perm uint32) bool {
 	if user == nil {
 		return false
 	}
@@ -227,22 +227,22 @@ func mode2Perm(mode uint8) uint32 {
 	var perm uint32 = 0
 
 	switch mode & 3 {
-	case ninep.OREAD:
-		perm = ninep.DMREAD
-	case ninep.OWRITE:
-		perm = ninep.DMWRITE
-	case ninep.ORDWR:
-		perm = ninep.DMREAD | ninep.DMWRITE
+	case warp9.OREAD:
+		perm = warp9.DMREAD
+	case warp9.OWRITE:
+		perm = warp9.DMWRITE
+	case warp9.ORDWR:
+		perm = warp9.DMREAD | warp9.DMWRITE
 	}
 
-	if (mode & ninep.OTRUNC) != 0 {
-		perm |= ninep.DMWRITE
+	if (mode & warp9.OTRUNC) != 0 {
+		perm |= warp9.DMWRITE
 	}
 
 	return perm
 }
 
-func (*W9Srv) FidDestroy(ffid *ninep.SrvFid) {
+func (*W9Srv) FidDestroy(ffid *warp9.SrvFid) {
 	if ffid.Aux == nil {
 		return
 	}

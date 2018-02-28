@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/ninep"
+import "github.com/lavaorg/warp9/warp9"
 
 // If the FReadOp interface is implemented, the Read operation will be called
 // to read from the file. If not implemented, "permission denied" error will
@@ -21,7 +21,7 @@ type FWriteOp interface {
 	Write(fid *W9Fid, data []byte, offset uint64) (int, error)
 }
 
-func (*W9Srv) Read(req *ninep.SrvReq) {
+func (*W9Srv) Read(req *warp9.SrvReq) {
 	var n int
 	var err error
 
@@ -31,7 +31,7 @@ func (*W9Srv) Read(req *ninep.SrvReq) {
 	rc := req.Rc
 	rc.InitRread(tc.Count)
 
-	if f.Mode&ninep.DMDIR != 0 {
+	if f.Mode&warp9.DMDIR != 0 {
 		// Get all the directory entries and
 		// serialize them all into an output buffer.
 		// This greatly simplifies the directory read.
@@ -45,7 +45,7 @@ func (*W9Srv) Read(req *ninep.SrvReq) {
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 				fid.dirs[n] = g
 				fid.dirents = append(fid.dirents,
-					ninep.PackDir(&g.Dir, req.Conn.Dotu)...)
+					warp9.PackDir(&g.Dir, req.Conn.Dotu)...)
 			}
 			f.Unlock()
 		}
@@ -69,7 +69,7 @@ func (*W9Srv) Read(req *ninep.SrvReq) {
 				return
 			}
 		} else {
-			req.RespondError(ninep.Err(ninep.Eperm))
+			req.RespondError(warp9.Err(warp9.Eperm))
 			return
 		}
 	}
@@ -78,7 +78,7 @@ func (*W9Srv) Read(req *ninep.SrvReq) {
 	req.Respond()
 }
 
-func (*W9Srv) Write(req *ninep.SrvReq) {
+func (*W9Srv) Write(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 	tc := req.Tc
@@ -91,7 +91,7 @@ func (*W9Srv) Write(req *ninep.SrvReq) {
 			req.RespondRwrite(uint32(n))
 		}
 	} else {
-		req.RespondError(ninep.Err(ninep.Eperm))
+		req.RespondError(warp9.Err(warp9.Eperm))
 	}
 
 }

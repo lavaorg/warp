@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ninep
+package warp9
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.

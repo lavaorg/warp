@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lavaorg/warp9/ninep"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 type ufsFid struct {
@@ -32,22 +32,22 @@ type ufsFid struct {
 }
 
 type Ufs struct {
-	ninep.Srv
-	ninep.StatsOps
+	warp9.Srv
+	warp9.StatsOps
 	Root string
 }
 
-func toError(err error) *ninep.Error {
+func toError(err error) *warp9.Error {
 	var ecode uint32
 
 	ename := err.Error()
 	if e, ok := err.(syscall.Errno); ok {
 		ecode = uint32(e)
 	} else {
-		ecode = ninep.EIO
+		ecode = warp9.EIO
 	}
 
-	return &ninep.Error{ename, ecode}
+	return &warp9.Error{ename, ecode}
 }
 
 // IsBlock reports if the file is a block device
@@ -62,7 +62,7 @@ func isChar(d os.FileInfo) bool {
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
 
-func (fid *ufsFid) stat() *ninep.Error {
+func (fid *ufsFid) stat() *warp9.Error {
 	var err error
 
 	fid.st, err = os.Lstat(fid.path)
@@ -76,32 +76,32 @@ func (fid *ufsFid) stat() *ninep.Error {
 func omode2uflags(mode uint8) int {
 	ret := int(0)
 	switch mode & 3 {
-	case ninep.OREAD:
+	case warp9.OREAD:
 		ret = os.O_RDONLY
 		break
 
-	case ninep.ORDWR:
+	case warp9.ORDWR:
 		ret = os.O_RDWR
 		break
 
-	case ninep.OWRITE:
+	case warp9.OWRITE:
 		ret = os.O_WRONLY
 		break
 
-	case ninep.OEXEC:
+	case warp9.OEXEC:
 		ret = os.O_RDONLY
 		break
 	}
 
-	if mode&ninep.OTRUNC != 0 {
+	if mode&warp9.OTRUNC != 0 {
 		ret |= os.O_TRUNC
 	}
 
 	return ret
 }
 
-func dir2Qid(d os.FileInfo) *ninep.Qid {
-	var qid ninep.Qid
+func dir2Qid(d os.FileInfo) *warp9.Qid {
+	var qid warp9.Qid
 
 	qid.Path = d.Sys().(*syscall.Stat_t).Ino
 	qid.Version = uint32(d.ModTime().UnixNano() / 1000000)
@@ -113,11 +113,11 @@ func dir2Qid(d os.FileInfo) *ninep.Qid {
 func dir2QidType(d os.FileInfo) uint8 {
 	ret := uint8(0)
 	if d.IsDir() {
-		ret |= ninep.QTDIR
+		ret |= warp9.QTDIR
 	}
 
 	if d.Mode()&os.ModeSymlink != 0 {
-		ret |= ninep.QTSYMLINK
+		ret |= warp9.QTSYMLINK
 	}
 
 	return ret
@@ -126,46 +126,46 @@ func dir2QidType(d os.FileInfo) uint8 {
 func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 	ret := uint32(d.Mode() & 0777)
 	if d.IsDir() {
-		ret |= ninep.DMDIR
+		ret |= warp9.DMDIR
 	}
 
 	if dotu {
 		mode := d.Mode()
 		if mode&os.ModeSymlink != 0 {
-			ret |= ninep.DMSYMLINK
+			ret |= warp9.DMSYMLINK
 		}
 
 		if mode&os.ModeSocket != 0 {
-			ret |= ninep.DMSOCKET
+			ret |= warp9.DMSOCKET
 		}
 
 		if mode&os.ModeNamedPipe != 0 {
-			ret |= ninep.DMNAMEDPIPE
+			ret |= warp9.DMNAMEDPIPE
 		}
 
 		if mode&os.ModeDevice != 0 {
-			ret |= ninep.DMDEVICE
+			ret |= warp9.DMDEVICE
 		}
 
 		if mode&os.ModeSetuid != 0 {
-			ret |= ninep.DMSETUID
+			ret |= warp9.DMSETUID
 		}
 
 		if mode&os.ModeSetgid != 0 {
-			ret |= ninep.DMSETGID
+			ret |= warp9.DMSETGID
 		}
 	}
 
 	return ret
 }
 
-// Dir is an instantiation of the ninep.Dir structure
+// Dir is an instantiation of the warp9.Dir structure
 // that can act as a receiver for local methods.
 type ufsDir struct {
-	ninep.Dir
+	warp9.Dir
 }
 
-func dir2Dir(path string, d os.FileInfo, dotu bool, upool ninep.Users) (*ninep.Dir, error) {
+func dir2Dir(path string, d os.FileInfo, dotu bool, upool warp9.Users) (*warp9.Dir, error) {
 	if r := recover(); r != nil {
 		fmt.Print("stat failed: ", r)
 		return nil, &os.PathError{"dir2Dir", path, nil}
@@ -208,7 +208,7 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool ninep.Users) (*ninep.D
 	return &dir.Dir, nil
 }
 
-func (dir *ufsDir) dotu(path string, d os.FileInfo, upool ninep.Users, sysMode *syscall.Stat_t) {
+func (dir *ufsDir) dotu(path string, d os.FileInfo, upool warp9.Users, sysMode *syscall.Stat_t) {
 	u := upool.Uid2User(int(sysMode.Uid))
 	g := upool.Gid2Group(int(sysMode.Gid))
 	dir.Uid = u.Name()
@@ -224,7 +224,7 @@ func (dir *ufsDir) dotu(path string, d os.FileInfo, upool ninep.Users, sysMode *
 	dir.Ext = ""
 	dir.Uidnum = uint32(u.Id())
 	dir.Gidnum = uint32(g.Id())
-	dir.Muidnum = ninep.NOUID
+	dir.Muidnum = warp9.NOUID
 	if d.Mode()&os.ModeSymlink != 0 {
 		var err error
 		dir.Ext, err = os.Readlink(path)
@@ -238,19 +238,19 @@ func (dir *ufsDir) dotu(path string, d os.FileInfo, upool ninep.Users, sysMode *
 	}
 }
 
-func (*Ufs) ConnOpened(conn *ninep.Conn) {
+func (*Ufs) ConnOpened(conn *warp9.Conn) {
 	if conn.Srv.Debuglevel > 0 {
 		log.Println("connected")
 	}
 }
 
-func (*Ufs) ConnClosed(conn *ninep.Conn) {
+func (*Ufs) ConnClosed(conn *warp9.Conn) {
 	if conn.Srv.Debuglevel > 0 {
 		log.Println("disconnected")
 	}
 }
 
-func (*Ufs) FidDestroy(sfid *ninep.SrvFid) {
+func (*Ufs) FidDestroy(sfid *warp9.SrvFid) {
 	var fid *ufsFid
 
 	if sfid.Aux == nil {
@@ -263,9 +263,9 @@ func (*Ufs) FidDestroy(sfid *ninep.SrvFid) {
 	}
 }
 
-func (ufs *Ufs) Attach(req *ninep.SrvReq) {
+func (ufs *Ufs) Attach(req *warp9.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(ninep.Err(ninep.Enoauth))
+		req.RespondError(warp9.Err(warp9.Enoauth))
 		return
 	}
 
@@ -287,9 +287,9 @@ func (ufs *Ufs) Attach(req *ninep.SrvReq) {
 	req.RespondRattach(qid)
 }
 
-func (*Ufs) Flush(req *ninep.SrvReq) {}
+func (*Ufs) Flush(req *warp9.SrvReq) {}
 
-func (*Ufs) Walk(req *ninep.SrvReq) {
+func (*Ufs) Walk(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 
@@ -304,7 +304,7 @@ func (*Ufs) Walk(req *ninep.SrvReq) {
 	}
 
 	nfid := req.Newfid.Aux.(*ufsFid)
-	wqids := make([]ninep.Qid, len(tc.Wname))
+	wqids := make([]warp9.Qid, len(tc.Wname))
 	path := fid.path
 	i := 0
 	for ; i < len(tc.Wname); i++ {
@@ -312,7 +312,7 @@ func (*Ufs) Walk(req *ninep.SrvReq) {
 		st, err := os.Lstat(p)
 		if err != nil {
 			if i == 0 {
-				req.RespondError(ninep.Err(ninep.Enotexist))
+				req.RespondError(warp9.Err(warp9.Enotexist))
 				return
 			}
 
@@ -327,7 +327,7 @@ func (*Ufs) Walk(req *ninep.SrvReq) {
 	req.RespondRwalk(wqids[0:i])
 }
 
-func (*Ufs) Open(req *ninep.SrvReq) {
+func (*Ufs) Open(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
@@ -346,7 +346,7 @@ func (*Ufs) Open(req *ninep.SrvReq) {
 	req.RespondRopen(dir2Qid(fid.st), 0)
 }
 
-func (*Ufs) Create(req *ninep.SrvReq) {
+func (*Ufs) Create(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
@@ -359,13 +359,13 @@ func (*Ufs) Create(req *ninep.SrvReq) {
 	var e error = nil
 	var file *os.File = nil
 	switch {
-	case tc.Perm&ninep.DMDIR != 0:
+	case tc.Perm&warp9.DMDIR != 0:
 		e = os.Mkdir(path, os.FileMode(tc.Perm&0777))
 
-	case tc.Perm&ninep.DMSYMLINK != 0:
+	case tc.Perm&warp9.DMSYMLINK != 0:
 		e = os.Symlink(tc.Ext, path)
 
-	case tc.Perm&ninep.DMLINK != 0:
+	case tc.Perm&warp9.DMLINK != 0:
 		n, e := strconv.ParseUint(tc.Ext, 10, 0)
 		if e != nil {
 			break
@@ -373,25 +373,25 @@ func (*Ufs) Create(req *ninep.SrvReq) {
 
 		ofid := req.Conn.FidGet(uint32(n))
 		if ofid == nil {
-			req.RespondError(ninep.Err(ninep.Eunknownfid))
+			req.RespondError(warp9.Err(warp9.Eunknownfid))
 			return
 		}
 
 		e = os.Link(ofid.Aux.(*ufsFid).path, path)
 		ofid.DecRef()
 
-	case tc.Perm&ninep.DMNAMEDPIPE != 0:
-	case tc.Perm&ninep.DMDEVICE != 0:
-		req.RespondError(ninep.Err(ninep.Enotimpl))
+	case tc.Perm&warp9.DMNAMEDPIPE != 0:
+	case tc.Perm&warp9.DMDEVICE != 0:
+		req.RespondError(warp9.Err(warp9.Enotimpl))
 		return
 
 	default:
 		var mode uint32 = tc.Perm & 0777
 		if req.Conn.Dotu {
-			if tc.Perm&ninep.DMSETUID > 0 {
+			if tc.Perm&warp9.DMSETUID > 0 {
 				mode |= syscall.S_ISUID
 			}
-			if tc.Perm&ninep.DMSETGID > 0 {
+			if tc.Perm&warp9.DMSETGID > 0 {
 				mode |= syscall.S_ISGID
 			}
 		}
@@ -418,7 +418,7 @@ func (*Ufs) Create(req *ninep.SrvReq) {
 	req.RespondRcreate(dir2Qid(fid.st), 0)
 }
 
-func (*Ufs) Read(req *ninep.SrvReq) {
+func (*Ufs) Read(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	rc := req.Rc
@@ -455,7 +455,7 @@ func (*Ufs) Read(req *ninep.SrvReq) {
 				if st == nil {
 					continue
 				}
-				b := ninep.PackDir(st, req.Conn.Dotu)
+				b := warp9.PackDir(st, req.Conn.Dotu)
 				fid.dirents = append(fid.dirents, b...)
 				count += len(b)
 				fid.direntends = append(fid.direntends, count)
@@ -486,7 +486,7 @@ func (*Ufs) Read(req *ninep.SrvReq) {
 	req.Respond()
 }
 
-func (*Ufs) Write(req *ninep.SrvReq) {
+func (*Ufs) Write(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
@@ -504,9 +504,9 @@ func (*Ufs) Write(req *ninep.SrvReq) {
 	req.RespondRwrite(uint32(n))
 }
 
-func (*Ufs) Clunk(req *ninep.SrvReq) { req.RespondRclunk() }
+func (*Ufs) Clunk(req *warp9.SrvReq) { req.RespondRclunk() }
 
-func (*Ufs) Remove(req *ninep.SrvReq) {
+func (*Ufs) Remove(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
 	if err != nil {
@@ -523,7 +523,7 @@ func (*Ufs) Remove(req *ninep.SrvReq) {
 	req.RespondRremove()
 }
 
-func (*Ufs) Stat(req *ninep.SrvReq) {
+func (*Ufs) Stat(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
 	if err != nil {
@@ -540,13 +540,13 @@ func (*Ufs) Stat(req *ninep.SrvReq) {
 	req.RespondRstat(st)
 }
 
-func lookup(uid string, group bool) (uint32, *ninep.Error) {
+func lookup(uid string, group bool) (uint32, *warp9.Error) {
 	if uid == "" {
-		return ninep.NOUID, nil
+		return warp9.NOUID, nil
 	}
 	usr, e := user.Lookup(uid)
 	if e != nil {
-		return ninep.NOUID, toError(e)
+		return warp9.NOUID, toError(e)
 	}
 	conv := usr.Uid
 	if group {
@@ -554,12 +554,12 @@ func lookup(uid string, group bool) (uint32, *ninep.Error) {
 	}
 	u, e := strconv.Atoi(conv)
 	if e != nil {
-		return ninep.NOUID, toError(e)
+		return warp9.NOUID, toError(e)
 	}
 	return uint32(u), nil
 }
 
-func (u *Ufs) Wstat(req *ninep.SrvReq) {
+func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
 	if err != nil {
@@ -571,10 +571,10 @@ func (u *Ufs) Wstat(req *ninep.SrvReq) {
 	if dir.Mode != 0xFFFFFFFF {
 		mode := dir.Mode & 0777
 		if req.Conn.Dotu {
-			if dir.Mode&ninep.DMSETUID > 0 {
+			if dir.Mode&warp9.DMSETUID > 0 {
 				mode |= syscall.S_ISUID
 			}
-			if dir.Mode&ninep.DMSETGID > 0 {
+			if dir.Mode&warp9.DMSETGID > 0 {
 				mode |= syscall.S_ISGID
 			}
 		}
@@ -585,7 +585,7 @@ func (u *Ufs) Wstat(req *ninep.SrvReq) {
 		}
 	}
 
-	uid, gid := ninep.NOUID, ninep.NOUID
+	uid, gid := warp9.NOUID, warp9.NOUID
 	if req.Conn.Dotu {
 		uid = dir.Uidnum
 		gid = dir.Gidnum
@@ -609,7 +609,7 @@ func (u *Ufs) Wstat(req *ninep.SrvReq) {
 		}
 	}
 
-	if uid != ninep.NOUID || gid != ninep.NOUID {
+	if uid != warp9.NOUID || gid != warp9.NOUID {
 		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
 			req.RespondError(toError(e))

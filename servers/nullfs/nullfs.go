@@ -12,7 +12,7 @@ package nullfs
 import (
 	"log"
 
-	"github.com/lavaorg/warp9/ninep"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 type nullfsFid struct {
@@ -21,14 +21,14 @@ type nullfsFid struct {
 }
 
 type Nullfs struct {
-	ninep.Srv
-	ninep.StatsOps
+	warp9.Srv
+	warp9.StatsOps
 }
 
 // NullDir represents an entry in the NullFS. It will contain a ninep dir
 // but can carry additional data/state needed as necessary
 type NullfsDir struct {
-	ninep.Dir
+	warp9.Dir
 }
 
 var root *NullfsDir = newNullfsDir("/")
@@ -41,11 +41,11 @@ func newNullfsDir(n string) *NullfsDir {
 	d.Gid = "nobody"
 	d.Muid = "nobody"
 
-	d.Mode = ninep.DMDIR | uint32(perms(ninep.DMREAD, ninep.DMREAD, ninep.DMREAD))
+	d.Mode = warp9.DMDIR | uint32(perms(warp9.DMREAD, warp9.DMREAD, warp9.DMREAD))
 	d.Atime = 0
 	d.Mtime = 0
 
-	d.Qid = ninep.Qid{ninep.QTDIR, 0, 9999}
+	d.Qid = warp9.Qid{warp9.QTDIR, 0, 9999}
 
 	d.Type = 0
 	d.Dev = 0
@@ -57,19 +57,19 @@ func perms(u, g, o byte) uint16 {
 	return uint16(uint16(u)<<6 | uint16(g)<<3 | uint16(o))
 }
 
-func (*Nullfs) ConnOpened(conn *ninep.Conn) {
+func (*Nullfs) ConnOpened(conn *warp9.Conn) {
 	if conn.Srv.Debuglevel > 0 {
 		log.Println("connected")
 	}
 }
 
-func (*Nullfs) ConnClosed(conn *ninep.Conn) {
+func (*Nullfs) ConnClosed(conn *warp9.Conn) {
 	if conn.Srv.Debuglevel > 0 {
 		log.Println("disconnected")
 	}
 }
 
-func (*Nullfs) FidDestroy(sfid *ninep.SrvFid) {
+func (*Nullfs) FidDestroy(sfid *warp9.SrvFid) {
 	var fid *nullfsFid
 
 	if sfid.Aux == nil {
@@ -83,9 +83,9 @@ func (*Nullfs) FidDestroy(sfid *ninep.SrvFid) {
 	//cleanup fid
 }
 
-func (ufs *Nullfs) Attach(req *ninep.SrvReq) {
+func (ufs *Nullfs) Attach(req *warp9.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(ninep.Err(ninep.Enoauth))
+		req.RespondError(warp9.Err(warp9.Enoauth))
 		return
 	}
 	//tc := req.Tc
@@ -96,14 +96,14 @@ func (ufs *Nullfs) Attach(req *ninep.SrvReq) {
 	req.RespondRattach(&root.Qid)
 }
 
-func (*Nullfs) Flush(req *ninep.SrvReq) {}
+func (*Nullfs) Flush(req *warp9.SrvReq) {}
 
-func (*Nullfs) Walk(req *ninep.SrvReq) {
+func (*Nullfs) Walk(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*nullfsFid)
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError(ninep.Err(ninep.Ebaduse))
+		req.RespondError(warp9.Err(warp9.Ebaduse))
 		return
 	}
 
@@ -114,47 +114,47 @@ func (*Nullfs) Walk(req *ninep.SrvReq) {
 	// there are no entries so if path is not "." or ".." or "/" return an error
 	// "." and ".." by definition are alias for the current node, so valid.
 	if len(tc.Wname) != 1 {
-		req.RespondError(ninep.Err(ninep.Enotexist)) //ninep.Enoent)
+		req.RespondError(warp9.Err(warp9.Enotexist)) //warp9.Enoent)
 		return
 	}
 	p := tc.Wname[0]
 	if p != "." && p != ".." && p != "/" {
-		req.RespondError(ninep.Err(ninep.Enotexist))
+		req.RespondError(warp9.Err(warp9.Enotexist))
 		return
 	}
 
 	req.Newfid.Aux = req.Fid.Aux
-	wqids := make([]ninep.Qid, 1)
+	wqids := make([]warp9.Qid, 1)
 	wqids[0] = fid.entry.Qid
 
 	req.RespondRwalk(wqids[0:])
 }
 
-func (*Nullfs) Open(req *ninep.SrvReq) {
+func (*Nullfs) Open(req *warp9.SrvReq) {
 
 	tc := req.Tc
 	mode := tc.Mode
-	if mode != ninep.OREAD {
-		req.RespondError(ninep.Err(ninep.Eperm))
+	if mode != warp9.OREAD {
+		req.RespondError(warp9.Err(warp9.Eperm))
 		return
 	}
 
 	req.RespondRopen(&root.Qid, 0)
 }
 
-func (*Nullfs) Create(req *ninep.SrvReq) {
+func (*Nullfs) Create(req *warp9.SrvReq) {
 	// no creation
-	req.RespondError(ninep.Err(ninep.Enotimpl))
+	req.RespondError(warp9.Err(warp9.Enotimpl))
 }
 
-func (*Nullfs) Read(req *ninep.SrvReq) {
+func (*Nullfs) Read(req *warp9.SrvReq) {
 	tc := req.Tc
 	rc := req.Rc
 
 	rc.InitRread(tc.Count)
 
 	// convert our directory to byte buffer; we aren't caching
-	b := ninep.PackDir(&root.Dir, req.Conn.Dotu)
+	b := warp9.PackDir(&root.Dir, req.Conn.Dotu)
 
 	// determine which and how many bytes to return
 	var count int
@@ -172,23 +172,23 @@ func (*Nullfs) Read(req *ninep.SrvReq) {
 	req.Respond()
 }
 
-func (*Nullfs) Write(req *ninep.SrvReq) {
-	req.RespondError(&ninep.Error{"write not supported", ninep.EIO})
+func (*Nullfs) Write(req *warp9.SrvReq) {
+	req.RespondError(&warp9.Error{"write not supported", warp9.EIO})
 	return
 }
 
-func (*Nullfs) Clunk(req *ninep.SrvReq) { req.RespondRclunk() }
+func (*Nullfs) Clunk(req *warp9.SrvReq) { req.RespondRclunk() }
 
-func (*Nullfs) Remove(req *ninep.SrvReq) {
-	req.RespondError(&ninep.Error{"remove not supported", ninep.EIO})
+func (*Nullfs) Remove(req *warp9.SrvReq) {
+	req.RespondError(&warp9.Error{"remove not supported", warp9.EIO})
 	return
 }
 
-func (*Nullfs) Stat(req *ninep.SrvReq) {
-	req.RespondError(&ninep.Error{"stat not supported", ninep.EIO})
+func (*Nullfs) Stat(req *warp9.SrvReq) {
+	req.RespondError(&warp9.Error{"stat not supported", warp9.EIO})
 	return
 }
-func (u *Nullfs) Wstat(req *ninep.SrvReq) {
-	req.RespondError(&ninep.Error{"wstat not supported", ninep.EIO})
+func (u *Nullfs) Wstat(req *warp9.SrvReq) {
+	req.RespondError(&warp9.Error{"wstat not supported", warp9.EIO})
 	return
 }

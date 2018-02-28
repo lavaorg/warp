@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/ninep"
+import "github.com/lavaorg/warp9/warp9"
 
 // If the FCreateOp interface is implemented, the Create operation will be called
 // when the client attempts to create a file in the W9File implementing the interface.
@@ -18,12 +18,12 @@ type FOpenOp interface {
 	Open(fid *W9Fid, mode uint8) error
 }
 
-func (*W9Srv) Open(req *ninep.SrvReq) {
+func (*W9Srv) Open(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	tc := req.Tc
 
 	if !fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
-		req.RespondError(ninep.Err(ninep.Eperm))
+		req.RespondError(warp9.Err(warp9.Eperm))
 		return
 	}
 
@@ -37,13 +37,13 @@ func (*W9Srv) Open(req *ninep.SrvReq) {
 	req.RespondRopen(&fid.F.Qid, 0)
 }
 
-func (*W9Srv) Create(req *ninep.SrvReq) {
+func (*W9Srv) Create(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	tc := req.Tc
 
 	dir := fid.F
-	if !dir.CheckPerm(req.Fid.User, ninep.DMWRITE) {
-		req.RespondError(ninep.Err(ninep.Eperm))
+	if !dir.CheckPerm(req.Fid.User, warp9.DMWRITE) {
+		req.RespondError(warp9.Err(warp9.Eperm))
 		return
 	}
 
@@ -56,6 +56,6 @@ func (*W9Srv) Create(req *ninep.SrvReq) {
 			req.RespondRcreate(&fid.F.Qid, 0)
 		}
 	} else {
-		req.RespondError(ninep.Err(ninep.Eperm))
+		req.RespondError(warp9.Err(warp9.Eperm))
 	}
 }

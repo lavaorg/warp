@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ninep
+package warp9
 
 // SrvRequest operations. This interface should be implemented by all file servers.
 // The operations correspond directly to most of the 9P2000 message types.

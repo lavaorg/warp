@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lavaorg/warp9/ninep"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 var verbose = flag.Bool("v", false, "verbose mode")
@@ -22,10 +22,10 @@ func main() {
 
 	flag.Parse()
 
-	uid := ninep.OsUsers.Uid2User(os.Geteuid())
-	ninep.DefaultDebuglevel = *dbglev
+	uid := warp9.OsUsers.Uid2User(os.Geteuid())
+	warp9.DefaultDebuglevel = *dbglev
 
-	c9, err := ninep.Mount("tcp", *addr, *aname, 8192, uid)
+	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, uid)
 	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
@@ -63,8 +63,8 @@ func usage() {
 	fmt.Println("\tcmd = {ls,stat,cat,echo}")
 }
 
-func cmdcat(c9 *ninep.Clnt) {
-	f, err := c9.FOpen(flag.Arg(1), ninep.OREAD)
+func cmdcat(c9 *warp9.Clnt) {
+	f, err := c9.FOpen(flag.Arg(1), warp9.OREAD)
 	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
@@ -91,9 +91,9 @@ func cmdcat(c9 *ninep.Clnt) {
 
 }
 
-func cmdls(c9 *ninep.Clnt) {
+func cmdls(c9 *warp9.Clnt) {
 
-	f, err := c9.FOpen(flag.Arg(1), ninep.OREAD)
+	f, err := c9.FOpen(flag.Arg(1), warp9.OREAD)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func cmdls(c9 *ninep.Clnt) {
 	}
 }
 
-func cmdstat(c9 *ninep.Clnt) {
+func cmdstat(c9 *warp9.Clnt) {
 	d, err := c9.FStat(flag.Arg(1))
 	if err != nil {
 		log.Println("Error", err)
@@ -136,9 +136,9 @@ func cmdstat(c9 *ninep.Clnt) {
 
 }
 
-func cmdfcat(c9 *ninep.Clnt) {
+func cmdfcat(c9 *warp9.Clnt) {
 
-	err := c9.Open(c9.Root, ninep.OREAD)
+	err := c9.Open(c9.Root, warp9.OREAD)
 	if err != nil {
 		log.Fatalf("open err:%v\n", err)
 	}

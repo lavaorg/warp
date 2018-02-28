@@ -1,6 +1,6 @@
 // +build httpstats
 
-package ninep
+package warp9
 
 import (
 	"fmt"

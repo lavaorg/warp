@@ -3,7 +3,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ninep
+package warp9
 
 // Create a Tversion message in the specified Fcall.
 func (fc *Fcall) packTversion(msize uint32, version string) error {

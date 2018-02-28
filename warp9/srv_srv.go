@@ -4,7 +4,7 @@
 
 // The srv* files provides definitions and functions used to implement
 // a 9P2000 file server.
-package ninep
+package warp9
 
 import (
 	"fmt"

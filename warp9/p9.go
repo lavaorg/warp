@@ -6,7 +6,7 @@
 // the 9P2000 protocol.
 // TODO.
 // All the packet conversion code in this file is crap and needs a rewrite.
-package ninep
+package warp9
 
 import (
 	"errors"

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lavaorg/warp9/ninep"
 	"github.com/lavaorg/warp9/servers/nullfs"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 var addr = flag.String("addr", ":5640", "network address")
@@ -34,10 +34,10 @@ func main() {
 }
 
 func showInterfaces(ifaces interface{}) {
-	if _, ok := (ifaces).(ninep.SrvReqOps); ok {
+	if _, ok := (ifaces).(warp9.SrvReqOps); ok {
 		fmt.Println("implements: SrvReqOps")
 	}
-	if _, ok := (ifaces).(ninep.StatsOps); ok {
+	if _, ok := (ifaces).(warp9.StatsOps); ok {
 		fmt.Println("implements: StatsOps")
 	}
 

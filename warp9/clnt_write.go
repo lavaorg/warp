@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ninep
+package warp9
 
 // Write up to len(data) bytes starting from offset. Returns the
 // number of bytes written, or an Error.

@@ -6,7 +6,7 @@ package warpsrv
 import (
 	"log"
 
-	"github.com/lavaorg/warp9/ninep"
+	"github.com/lavaorg/warp9/warp9"
 )
 
 // If the FRemoveOp interface is implemented, the Remove operation will be called
@@ -18,13 +18,13 @@ type W9RemoveCmd interface {
 	W9Remove(*W9Fid) error
 }
 
-func (*W9Srv) Remove(req *ninep.SrvReq) {
+func (*W9Srv) Remove(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 	f.Lock()
 	if f.cfirst != nil {
 		f.Unlock()
-		req.RespondError(ninep.Err(ninep.Enotempty))
+		req.RespondError(warp9.Err(warp9.Enotempty))
 		return
 	}
 	f.Unlock()
@@ -39,6 +39,6 @@ func (*W9Srv) Remove(req *ninep.SrvReq) {
 		}
 	} else {
 		log.Println("remove not implemented")
-		req.RespondError(ninep.Err(ninep.Eperm))
+		req.RespondError(warp9.Err(warp9.Eperm))
 	}
 }

@@ -1,4 +1,4 @@
-package ninep
+package warp9
 
 // Debug flags
 const (

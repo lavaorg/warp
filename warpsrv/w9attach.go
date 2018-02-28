@@ -3,9 +3,9 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/ninep"
+import "github.com/lavaorg/warp9/warp9"
 
-func (s *W9Srv) Attach(req *ninep.SrvReq) {
+func (s *W9Srv) Attach(req *warp9.SrvReq) {
 	fid := new(W9Fid)
 	fid.F = s.Root
 	fid.Fid = req.Fid

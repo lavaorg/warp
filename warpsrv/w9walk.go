@@ -3,9 +3,9 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/ninep"
+import "github.com/lavaorg/warp9/warp9"
 
-func (*W9Srv) Walk(req *ninep.SrvReq) {
+func (*W9Srv) Walk(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)
 	tc := req.Tc
 
@@ -16,7 +16,7 @@ func (*W9Srv) Walk(req *ninep.SrvReq) {
 	}
 
 	nfid := req.Newfid.Aux.(*W9Fid)
-	wqids := make([]ninep.Qid, len(tc.Wname))
+	wqids := make([]warp9.Qid, len(tc.Wname))
 	i := 0
 	f := fid.F
 	for ; i < len(tc.Wname); i++ {
@@ -26,8 +26,8 @@ func (*W9Srv) Walk(req *ninep.SrvReq) {
 			wqids[i] = f.Qid
 			continue
 		}
-		if (wqids[i].Type & ninep.QTDIR) > 0 {
-			if !f.CheckPerm(req.Fid.User, ninep.DMEXEC) {
+		if (wqids[i].Type & warp9.QTDIR) > 0 {
+			if !f.CheckPerm(req.Fid.User, warp9.DMEXEC) {
 				break
 			}
 		}
@@ -42,7 +42,7 @@ func (*W9Srv) Walk(req *ninep.SrvReq) {
 	}
 
 	if len(tc.Wname) > 0 && i == 0 {
-		req.RespondError(ninep.Err(ninep.Enoent))
+		req.RespondError(warp9.Err(warp9.Enoent))
 		return
 	}
 
