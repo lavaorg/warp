@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/warp9"
+import "github.com/lavaorg/warp/warp9"
 
 type FClunkOp interface {
 	Clunk(fid *W9Fid) error

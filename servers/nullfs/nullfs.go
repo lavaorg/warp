@@ -12,7 +12,7 @@ package nullfs
 import (
 	"log"
 
-	"github.com/lavaorg/warp9/warp9"
+	"github.com/lavaorg/warp/warp9"
 )
 
 type nullfsFid struct {

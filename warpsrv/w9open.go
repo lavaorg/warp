@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/warp9"
+import "github.com/lavaorg/warp/warp9"
 
 // If the FCreateOp interface is implemented, the Create operation will be called
 // when the client attempts to create a file in the W9File implementing the interface.

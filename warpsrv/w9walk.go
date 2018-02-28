@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/warp9"
+import "github.com/lavaorg/warp/warp9"
 
 func (*W9Srv) Walk(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*W9Fid)

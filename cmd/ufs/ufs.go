@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lavaorg/warp9/servers/ufs"
-	"github.com/lavaorg/warp9/warp9"
+	"github.com/lavaorg/warp/servers/ufs"
+	"github.com/lavaorg/warp/warp9"
 )
 
 var addr = flag.String("addr", ":5640", "network address")

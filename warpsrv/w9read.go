@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/warp9"
+import "github.com/lavaorg/warp/warp9"
 
 // If the FReadOp interface is implemented, the Read operation will be called
 // to read from the file. If not implemented, "permission denied" error will

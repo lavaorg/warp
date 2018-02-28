@@ -6,7 +6,7 @@ package warpsrv
 import (
 	"log"
 
-	"github.com/lavaorg/warp9/warp9"
+	"github.com/lavaorg/warp/warp9"
 )
 
 // If the FRemoveOp interface is implemented, the Remove operation will be called

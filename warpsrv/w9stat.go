@@ -3,7 +3,7 @@
 
 package warpsrv
 
-import "github.com/lavaorg/warp9/warp9"
+import "github.com/lavaorg/warp/warp9"
 
 // The FStatOp interface provides a single operation (Stat) that will be
 // called before a file stat is sent back to the client. If implemented,

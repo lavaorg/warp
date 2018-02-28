@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lavaorg/warp9/warp9"
+	"github.com/lavaorg/warp/warp9"
 )
 
 var verbose = flag.Bool("v", false, "verbose mode")

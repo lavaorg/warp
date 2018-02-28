@@ -27,7 +27,7 @@
 package warp9
 
 import (
-	_ "github.com/lavaorg/warp9/warp9"
+	_ "github.com/lavaorg/warp/warp9"
 )
 
 // the client's fid information
