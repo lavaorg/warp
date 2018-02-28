@@ -3,11 +3,13 @@
 
 package warpsrv
 
+import "github.com/lavaorg/warp9/ninep"
+
 // The FStatOp interface provides a single operation (Stat) that will be
 // called before a file stat is sent back to the client. If implemented,
 // the operation should update the data in the srvFile struct.
 type FStatOp interface {
-	Stat(fid *FFid) error
+	Stat(fid *W9Fid) error
 }
 
 // The FWstatOp interface provides a single operation (Wstat) that will be
@@ -16,11 +18,11 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*FFid, *Dir) error
+	Wstat(*W9Fid, *ninep.Dir) error
 }
 
-func (*Fsrv) Stat(req *SrvReq) {
-	fid := req.Fid.Aux.(*FFid)
+func (*W9Srv) Stat(req *ninep.SrvReq) {
+	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 
 	if sop, ok := (f.ops).(FStatOp); ok {
@@ -35,9 +37,9 @@ func (*Fsrv) Stat(req *SrvReq) {
 	}
 }
 
-func (*Fsrv) Wstat(req *SrvReq) {
+func (*W9Srv) Wstat(req *ninep.SrvReq) {
 	tc := req.Tc
-	fid := req.Fid.Aux.(*FFid)
+	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 
 	if wop, ok := (f.ops).(FWstatOp); ok {
@@ -48,6 +50,6 @@ func (*Fsrv) Wstat(req *SrvReq) {
 			req.RespondRwstat()
 		}
 	} else {
-		req.RespondError(Err(Eperm))
+		req.RespondError(ninep.Err(ninep.Eperm))
 	}
 }

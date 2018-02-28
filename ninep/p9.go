@@ -139,6 +139,8 @@ const (
 	Edirchange  = "cannot convert between files and directories"
 	Enouser     = "unknown user"
 	Enotimpl    = "not implemented"
+	Enotempty   = "directory not empty"
+	Enoent      = "no entry found in walk"
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error

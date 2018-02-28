@@ -3,12 +3,14 @@
 
 package warpsrv
 
+import "github.com/lavaorg/warp9/ninep"
+
 type FClunkOp interface {
-	Clunk(fid *FFid) error
+	Clunk(fid *W9Fid) error
 }
 
-func (*Fsrv) Clunk(req *SrvReq) {
-	fid := req.Fid.Aux.(*FFid)
+func (*W9Srv) Clunk(req *ninep.SrvReq) {
+	fid := req.Fid.Aux.(*W9Fid)
 
 	if op, ok := (fid.F.ops).(FClunkOp); ok {
 		err := op.Clunk(fid)

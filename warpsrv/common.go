@@ -78,7 +78,7 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		f.Uidnum = uint32(uid.Id()) //9P2000.u
 	} else {
 		f.Uid = "none"
-		f.Uidnum = NOUID //9P2000.u
+		f.Uidnum = ninep.NOUID //9P2000.u
 	}
 
 	if gid != nil {
@@ -86,11 +86,11 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		f.Gidnum = uint32(gid.Id()) //9P2000.u
 	} else {
 		f.Gid = "none"
-		f.Gidnum = NOUID //9P2000.u
+		f.Gidnum = ninep.NOUID //9P2000.u
 	}
 
 	f.Muid = ""
-	f.Muidnum = NOUID
+	f.Muidnum = ninep.NOUID
 	f.Ext = ""
 
 	// add f as entry in dir
@@ -100,7 +100,7 @@ func (f *W9File) Add(dir *W9File, name string, uid ninep.User, gid ninep.Group, 
 		for p := dir.cfirst; p != nil; p = p.next {
 			if name == p.Name {
 				dir.Unlock()
-				return Eexist
+				return ninep.Err(ninep.Eexist)
 			}
 		}
 
@@ -158,7 +158,7 @@ func (f *W9File) Rename(name string) error {
 	defer p.Unlock()
 	for c := p.cfirst; c != nil; c = c.next {
 		if name == c.Name {
-			return Eexist
+			return ninep.Err(ninep.Eexist)
 		}
 	}
 
@@ -227,16 +227,16 @@ func mode2Perm(mode uint8) uint32 {
 	var perm uint32 = 0
 
 	switch mode & 3 {
-	case OREAD:
-		perm = DMREAD
-	case OWRITE:
-		perm = DMWRITE
-	case ORDWR:
-		perm = DMREAD | DMWRITE
+	case ninep.OREAD:
+		perm = ninep.DMREAD
+	case ninep.OWRITE:
+		perm = ninep.DMWRITE
+	case ninep.ORDWR:
+		perm = ninep.DMREAD | ninep.DMWRITE
 	}
 
-	if (mode & OTRUNC) != 0 {
-		perm |= DMWRITE
+	if (mode & ninep.OTRUNC) != 0 {
+		perm |= ninep.DMWRITE
 	}
 
 	return perm

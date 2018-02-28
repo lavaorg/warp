@@ -3,12 +3,14 @@
 
 package warpsrv
 
+import "github.com/lavaorg/warp9/ninep"
+
 // If the FReadOp interface is implemented, the Read operation will be called
 // to read from the file. If not implemented, "permission denied" error will
 // be send back. The operation returns the number of bytes read, or the
 // error occured while reading.
 type FReadOp interface {
-	Read(fid *FFid, buf []byte, offset uint64) (int, error)
+	Read(fid *W9Fid, buf []byte, offset uint64) (int, error)
 }
 
 // If the FWriteOp interface is implemented, the Write operation will be called
@@ -16,34 +18,34 @@ type FReadOp interface {
 // be send back. The operation returns the number of bytes written, or the
 // error occured while writing.
 type FWriteOp interface {
-	Write(fid *FFid, data []byte, offset uint64) (int, error)
+	Write(fid *W9Fid, data []byte, offset uint64) (int, error)
 }
 
-func (*Fsrv) Read(req *SrvReq) {
+func (*W9Srv) Read(req *ninep.SrvReq) {
 	var n int
 	var err error
 
-	fid := req.Fid.Aux.(*FFid)
+	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 	tc := req.Tc
 	rc := req.Rc
 	rc.InitRread(tc.Count)
 
-	if f.Mode&DMDIR != 0 {
+	if f.Mode&ninep.DMDIR != 0 {
 		// Get all the directory entries and
 		// serialize them all into an output buffer.
 		// This greatly simplifies the directory read.
 		if tc.Offset == 0 {
-			var g *srvFile
+			var g *W9File
 			fid.dirents = nil
 			f.Lock()
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 			}
-			fid.dirs = make([]*srvFile, n)
+			fid.dirs = make([]*W9File, n)
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 				fid.dirs[n] = g
 				fid.dirents = append(fid.dirents,
-					PackDir(&g.Dir, req.Conn.Dotu)...)
+					ninep.PackDir(&g.Dir, req.Conn.Dotu)...)
 			}
 			f.Unlock()
 		}
@@ -67,7 +69,7 @@ func (*Fsrv) Read(req *SrvReq) {
 				return
 			}
 		} else {
-			req.RespondError(Err(Eperm))
+			req.RespondError(ninep.Err(ninep.Eperm))
 			return
 		}
 	}
@@ -76,8 +78,8 @@ func (*Fsrv) Read(req *SrvReq) {
 	req.Respond()
 }
 
-func (*Fsrv) Write(req *SrvReq) {
-	fid := req.Fid.Aux.(*FFid)
+func (*W9Srv) Write(req *ninep.SrvReq) {
+	fid := req.Fid.Aux.(*W9Fid)
 	f := fid.F
 	tc := req.Tc
 
@@ -89,7 +91,7 @@ func (*Fsrv) Write(req *SrvReq) {
 			req.RespondRwrite(uint32(n))
 		}
 	} else {
-		req.RespondError(Err(Eperm))
+		req.RespondError(ninep.Err(ninep.Eperm))
 	}
 
 }

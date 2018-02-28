@@ -3,25 +3,27 @@
 
 package warpsrv
 
+import "github.com/lavaorg/warp9/ninep"
+
 // If the FCreateOp interface is implemented, the Create operation will be called
-// when the client attempts to create a file in the srvFile implementing the interface.
+// when the client attempts to create a file in the W9File implementing the interface.
 // If not implemented, "permission denied" error will be send back. If successful,
 // the operation should call (*File)Add() to add the created file to the directory.
 // The operation returns the created file, or the error occured while creating it.
 type FCreateOp interface {
-	Create(fid *FFid, name string, perm uint32) (*srvFile, error)
+	Create(fid *W9Fid, name string, perm uint32) (*W9File, error)
 }
 
 type FOpenOp interface {
-	Open(fid *FFid, mode uint8) error
+	Open(fid *W9Fid, mode uint8) error
 }
 
-func (*Fsrv) Open(req *SrvReq) {
-	fid := req.Fid.Aux.(*FFid)
+func (*W9Srv) Open(req *ninep.SrvReq) {
+	fid := req.Fid.Aux.(*W9Fid)
 	tc := req.Tc
 
 	if !fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
-		req.RespondError(Err(Eperm))
+		req.RespondError(ninep.Err(ninep.Eperm))
 		return
 	}
 
@@ -35,13 +37,13 @@ func (*Fsrv) Open(req *SrvReq) {
 	req.RespondRopen(&fid.F.Qid, 0)
 }
 
-func (*Fsrv) Create(req *SrvReq) {
-	fid := req.Fid.Aux.(*FFid)
+func (*W9Srv) Create(req *ninep.SrvReq) {
+	fid := req.Fid.Aux.(*W9Fid)
 	tc := req.Tc
 
 	dir := fid.F
-	if !dir.CheckPerm(req.Fid.User, DMWRITE) {
-		req.RespondError(Err(Eperm))
+	if !dir.CheckPerm(req.Fid.User, ninep.DMWRITE) {
+		req.RespondError(ninep.Err(ninep.Eperm))
 		return
 	}
 
@@ -54,6 +56,6 @@ func (*Fsrv) Create(req *SrvReq) {
 			req.RespondRcreate(&fid.F.Qid, 0)
 		}
 	} else {
-		req.RespondError(Err(Eperm))
+		req.RespondError(ninep.Err(ninep.Eperm))
 	}
 }
