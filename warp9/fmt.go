@@ -9,78 +9,95 @@ import "fmt"
 func permToString(perm uint32) string {
 	ret := ""
 
-	if perm&DMDIR != 0 {
-		ret += "d"
+	if perm&DMMASK == 0 {
+		ret = "o" //regular object
+	} else {
+		if perm&DMDIR != 0 {
+			ret += "d"
+		}
+
+		if perm&DMAPPEND != 0 {
+			ret += "a"
+		}
+
+		if perm&DMAUTH != 0 {
+			ret += "A"
+		}
+
+		if perm&DMEXCL != 0 {
+			ret += "l"
+		}
+
+		if perm&DMTMP != 0 {
+			ret += "t"
+		}
+
+		if perm&DMDEVICE != 0 {
+			ret += "D"
+		}
+
+		if perm&DMSOCKET != 0 {
+			ret += "S"
+		}
+
+		if perm&DMNAMEDPIPE != 0 {
+			ret += "P"
+		}
+
+		if perm&DMSYMLINK != 0 {
+			ret += "L"
+		}
 	}
 
-	if perm&DMAPPEND != 0 {
-		ret += "a"
-	}
-
-	if perm&DMAUTH != 0 {
-		ret += "A"
-	}
-
-	if perm&DMEXCL != 0 {
-		ret += "l"
-	}
-
-	if perm&DMTMP != 0 {
-		ret += "t"
-	}
-
-	if perm&DMDEVICE != 0 {
-		ret += "D"
-	}
-
-	if perm&DMSOCKET != 0 {
-		ret += "S"
-	}
-
-	if perm&DMNAMEDPIPE != 0 {
-		ret += "P"
-	}
-
-	if perm&DMSYMLINK != 0 {
-		ret += "L"
-	}
-
-	ret += fmt.Sprintf("%o", perm&0777)
+	ret += fmt.Sprintf("%s", p2str(perm&0777))
 	return ret
+}
+
+func p2str(a uint32) string {
+	buf := []byte{'r', 'w', 'x', 'r', 'w', 'x', 'r', 'w', 'x'}
+
+	for i, _ := range buf {
+		if a&0400 == 0 {
+			buf[i] = '-'
+		}
+		a = a << 1
+	}
+	return string(buf)
 }
 
 func (qid *Qid) String() string {
 	b := ""
-	if qid.Type&QTDIR != 0 {
-		b += "d"
-	}
-	if qid.Type&QTAPPEND != 0 {
-		b += "a"
-	}
-	if qid.Type&QTAUTH != 0 {
-		b += "A"
-	}
-	if qid.Type&QTEXCL != 0 {
-		b += "l"
-	}
-	if qid.Type&QTTMP != 0 {
-		b += "t"
-	}
-	if qid.Type&QTSYMLINK != 0 {
-		b += "L"
+	if qid.Type == 0 {
+		b = "o" // regular object
+	} else {
+
+		if qid.Type&QTDIR != 0 {
+			b += "d"
+		}
+		if qid.Type&QTAPPEND != 0 {
+			b += "a"
+		}
+		if qid.Type&QTAUTH != 0 {
+			b += "A"
+		}
+		if qid.Type&QTEXCL != 0 {
+			b += "l"
+		}
+		if qid.Type&QTTMP != 0 {
+			b += "t"
+		}
+		if qid.Type&QTSYMLINK != 0 {
+			b += "L"
+		}
 	}
 
-	return fmt.Sprintf("(%x %x '%s')", qid.Path, qid.Version, b)
+	return fmt.Sprintf("(%s.%x.%x)", b, qid.Version, qid.Path)
 }
 
 func (d *Dir) String() string {
-	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", d.Name, d.Uid, d.Gid, d.Muid)
-	ret += d.Qid.String() + " m " + permToString(d.Mode)
-	ret += fmt.Sprintf(" at %d mt %d l %d t %d d %d", d.Atime, d.Mtime,
-		d.Length, d.Type, d.Dev)
-
-	/* dotu ? */
-	ret += " ext " + d.Ext
+	ret := fmt.Sprintf("%s %s [%s:%s:%s] %d Q", permToString(d.Mode), d.Name, d.Uid, d.Gid, d.Muid, d.Length)
+	ret += d.Qid.String() + " "
+	ret += fmt.Sprintf("at[%d] mt[%d] (%d,%d)", d.Atime, d.Mtime, d.Type, d.Dev)
 
 	return ret
 }
@@ -110,15 +127,17 @@ func (fc *Fcall) String() string {
 	case Rerror:
 		ret = fmt.Sprintf("Rerror tag %d ename '%s' ecode %d", fc.Tag, fc.Error, fc.Errornum)
 	case Twalk:
-		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d ", fc.Tag, fc.Fid, fc.Newfid)
+		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d [", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {
-			ret += fmt.Sprintf("%d:'%s' ", i, fc.Wname[i])
+			ret += fmt.Sprintf("'%s',", fc.Wname[i])
 		}
+		ret += "]"
 	case Rwalk:
-		ret = fmt.Sprintf("Rwalk tag %d ", fc.Tag)
+		ret = fmt.Sprintf("Rwalk tag %d nwqid[", fc.Tag)
 		for i := 0; i < len(fc.Wqid); i++ {
-			ret += fmt.Sprintf("%v ", &fc.Wqid[i])
+			ret += fmt.Sprintf("%v,", &fc.Wqid[i])
 		}
+		ret += "]"
 	case Topen:
 		ret = fmt.Sprintf("Topen tag %d fid %d mode %x", fc.Tag, fc.Fid, fc.Mode)
 	case Ropen:

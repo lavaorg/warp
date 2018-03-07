@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/lavaorg/lrt/mlog"
 	"github.com/lavaorg/warp/warp9"
 )
 
@@ -93,22 +94,41 @@ func cmdcat(c9 *warp9.Clnt) {
 
 func cmdls(c9 *warp9.Clnt) {
 
-	f, err := c9.FOpen(flag.Arg(1), warp9.OREAD)
+	fid, err := c9.FWalk(flag.Arg(1))
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	for {
-		d, err := f.Readdir(0)
-		if d == nil || len(d) == 0 || err != nil {
-			break
-		}
-		for i := 0; i < len(d); i++ {
-			os.Stdout.WriteString(d[i].Name + "\n")
-		}
+		mlog.Error("error:%v", err)
+		return
 	}
 
+	mlog.Debug("ls: fid: %v", fid)
+
+	if fid.Qid.Type&warp9.QTDIR > 0 {
+		// read directory
+		f, err := c9.FFidOpen(fid, warp9.OREAD)
+		if err != nil {
+			mlog.Error("error:%v", err)
+			return
+		}
+		defer f.Close()
+		mlog.Debug("fid opened; readdir:%v", fid)
+		for {
+			d, err := f.Readdir(0)
+			if d == nil || len(d) == 0 || err != nil {
+				break
+			}
+			for i := 0; i < len(d); i++ {
+				os.Stdout.WriteString(d[i].Name + "\n")
+			}
+		}
+	} else {
+		// stat the file
+		d, err := c9.Stat(fid)
+		if err != nil {
+			log.Println("Error", err)
+			return
+		}
+		fmt.Printf("%v\n", d)
+	}
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
 	}
@@ -149,5 +169,5 @@ func cmdfcat(c9 *warp9.Clnt) {
 	}
 
 	os.Stdout.Write(buf[0:])
-
+	os.Stdout.Write([]byte{'\n'})
 }

@@ -5,6 +5,7 @@
 package warp9
 
 import (
+	"errors"
 	"strings"
 )
 
@@ -94,4 +95,24 @@ func (clnt *Clnt) FOpen(path string, mode uint8) (*File, error) {
 	}
 
 	return &File{fid, 0}, nil
+}
+
+// Opens an existing fid, returns a valid File. This behaves as does
+// FOpen, however, using a previously aquired fid, usually from FWalk.
+func (clnt *Clnt) FFidOpen(fid *Fid, mode uint8) (*File, error) {
+	if fid == nil {
+		return nil, errors.New("nil fid")
+	}
+	if !fid.walked {
+		return nil, errors.New("fid not from valid walk")
+	}
+
+	err := clnt.Open(fid, mode)
+	if err != nil {
+		clnt.Clunk(fid)
+		return nil, err
+	}
+
+	return &File{fid, 0}, nil
+
 }

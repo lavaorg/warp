@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // The srv* files provides definitions and functions used to implement
-// a 9P2000 file server.
+// a Warp9 file server.
 package warp9
 
 import (
@@ -22,7 +22,7 @@ const (
 )
 
 // Authentication operations. The file server should implement them if
-// it requires user authentication. The authentication in 9P2000 is
+// it requires user authentication. The authentication in Warp9 is
 // done by creating special authentication fids and performing I/O
 // operations on them. Once the authentication is done, the authentication
 // fid can be used by the user to get access to the actual files.
@@ -96,7 +96,7 @@ type FlushOp interface {
 	Flush(*SrvReq)
 }
 
-// The Srv type contains the basic fields used to control the 9P2000
+// The Srv type contains the basic fields used to control the Warp9
 // file server. Each file server implementation should create a value
 // of Srv type, initialize the values it cares about and pass the
 // struct to the (Srv *) srv.Start(ops) method together with the object
@@ -104,8 +104,8 @@ type FlushOp interface {
 type Srv struct {
 	sync.Mutex
 	Id         string // Used for debugging and stats
-	Msize      uint32 // Maximum size of the 9P2000 messages supported by the server
-	Dotu       bool   // If true, the server supports the 9P2000.u extension
+	Msize      uint32 // Maximum size of the Warp9 messages supported by the server
+	Dotu       bool   // If true, the server supports the Warp9.u extension
 	Debuglevel int    // debug level
 	Upool      Users  // Interface for finding users and groups known to the file server
 	Maxpend    int    // Maximum pending outgoing requests
@@ -119,8 +119,8 @@ type Srv struct {
 type Conn struct {
 	sync.Mutex
 	Srv        *Srv
-	Msize      uint32 // maximum size of 9P2000 messages for the connection
-	Dotu       bool   // if true, both the client and the server speak 9P2000.u
+	Msize      uint32 // maximum size of Warp9 messages for the connection
+	Dotu       bool   // if true, both the client and the server speak Warp9.u
 	Id         string // used for debugging and stats
 	Debuglevel int
 
@@ -161,15 +161,15 @@ type SrvFid struct {
 	Aux       interface{} // Can be used by the file server implementation for per-SrvFid data
 }
 
-// The SrvReq type represents a 9P2000 request. Each request has a
+// The SrvReq type represents a Warp9 request. Each request has a
 // T-message (Tc) and a R-message (Rc). If the SrvReqProcessOps don't
 // override the default behavior, the implementation initializes SrvFid,
 // Afid and Newfid values and automatically keeps track on when the SrvFids
 // should be destroyed.
 type SrvReq struct {
 	sync.Mutex
-	Tc     *Fcall  // Incoming 9P2000 message
-	Rc     *Fcall  // Outgoing 9P2000 response
+	Tc     *Fcall  // Incoming message
+	Rc     *Fcall  // Outgoing response
 	Fid    *SrvFid // The SrvFid value for all messages that contain fid[4]
 	Afid   *SrvFid // The SrvFid value for the messages that contain afid[4] (Tauth and Tattach)
 	Newfid *SrvFid // The SrvFid value for the messages that contain newfid[4] (Twalk)
@@ -358,7 +358,7 @@ func (req *SrvReq) PostProcess() {
 }
 
 // The Respond method sends response back to the client. The req.Rc value
-// should be initialized and contain valid 9P2000 message. In most cases
+// should be initialized and contain valid Warp9 message. In most cases
 // the file server implementer shouldn't call this method directly. Instead
 // one of the RespondR* methods should be used.
 func (req *SrvReq) Respond() {

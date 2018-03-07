@@ -10,7 +10,8 @@ import (
 	"net"
 )
 
-func (srv *Srv) NewConn(c net.Conn) {
+func (srv *Srv) newConnSetup(c net.Conn) *Conn {
+
 	conn := new(Conn)
 	conn.Srv = srv
 	conn.Msize = srv.Msize
@@ -38,9 +39,20 @@ func (srv *Srv) NewConn(c net.Conn) {
 	if sop, ok := (interface{}(conn)).(StatsOps); ok {
 		sop.statsRegister()
 	}
+	return conn
+}
 
+func (srv *Srv) NewConn(c net.Conn) {
+	conn := srv.newConnSetup(c)
 	go conn.recv()
 	go conn.send()
+}
+
+// Block and serve the connection.
+func (srv *Srv) NewConnWait(c net.Conn) {
+	conn := srv.newConnSetup(c)
+	go conn.recv()
+	conn.send()
 }
 
 func (conn *Conn) close() {

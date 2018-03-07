@@ -79,6 +79,7 @@ const (
 // File modes
 const (
 	// file types -- high order 8bits
+	DMMASK   = 0xFF000000 // masks for top 8bits
 	DMDIR    = 0x80000000 // mode bit for directories
 	DMAPPEND = 0x40000000 // mode bit for append only files, offset ignored in write
 	DMEXCL   = 0x20000000 // mode bit for exclusive use files; one client open at a time
@@ -141,6 +142,7 @@ const (
 	Enotimpl    = "not implemented"
 	Enotempty   = "directory not empty"
 	Enoent      = "no entry found in walk"
+	Enotopen    = "file not open"
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
