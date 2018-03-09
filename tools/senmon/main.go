@@ -51,6 +51,7 @@ func listenForServers(ntype, addr string) {
 			mlog.Error("accept fail:v", err)
 			return
 		}
+		mlog.Debug("accepted connection: %v", c)
 		go handleConnection(c)
 	}
 }
@@ -103,6 +104,9 @@ func readSensor0(c9 *warp9.Clnt) {
 
 }
 
+// this shortens the number of requests due to avoiding a
+// last read that just looks for EOF. We have knowledge that
+// the sensors being read is a small number of bytes.
 func readSensor(c9 *warp9.Clnt) {
 
 	fid, err := c9.FWalk("sensors")
