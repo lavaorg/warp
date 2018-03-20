@@ -65,6 +65,7 @@ func handleConnection(c net.Conn) {
 	c9, err := warp9.MountConn(c, *aname, 500, uid)
 	if err != nil {
 		mlog.Error("Error:%v\n", err)
+		c.Close()
 		return // end thread
 	}
 
@@ -72,6 +73,7 @@ func handleConnection(c net.Conn) {
 	readSensor(c9)
 
 	// close connection
+	c9.Clunk(c9.Root)
 	c9.Unmount()
 }
 
@@ -123,7 +125,9 @@ func readSensor(c9 *warp9.Clnt) {
 
 	buf, err := c9.Read(fid, uint64(0), uint32(100))
 	if err != nil {
-		log.Fatalf("Error:%v\n", err)
+		mlog.Error("Error:%v\n", err)
+	} else {
+		mlog.Info("%v", string(buf))
 	}
-	mlog.Info("%v", string(buf))
+	c9.Clunk(fid)
 }
