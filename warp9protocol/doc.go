@@ -70,12 +70,19 @@ MESSAGES
     size[4] Rversion tag[2] msize[4] version[s]
 
     size[4] Rerror tag[2] ename[s]
+    PROPOSAL: size[4] Rerror tag[2] err[2]
 
     size[4] Tflush tag[2] oldtag[2]
 
     size[4] Rflush tag[2]
 
+    size[4] Tauth tag[2] afid[4] uname[s] aname[s]
+    PROPOSAL: size[4] Tauth tag[2] afid[4] uid[4] aname[s]
+
+    size[4] Rauth tag[2] aqid[13]
+
     size[4] Tattach tag[2] fid[4] atok[4] uname[s] aname[s]
+    PROPOSAL: size[4] Tattach tag[2] fid[4] atok[4] uid[4] aname[s]
 
     size[4] Rattach tag[2] qid[13]
 
@@ -119,14 +126,14 @@ BRIEF TERMINILOGY
 
 The following provides brief definitions for the rest of the doc:
 
-	fid    -- identifier provided by the client
-	qid    -- identifier provided by the server
-	tag    -- a client chosen id for a message transaction
-	object -- a sequence of bytes whoses structre and meaning defined by object
-			  An object's bytes can be considered the serialized form of its data.
-			  Objects are organized as a tree.
-	perm   -- permissions
-	mode   -- a given objects mode of access
+    fid    -- identifier provided by the client
+    qid    -- identifier provided by the server
+    tag    -- a client chosen id for a message transaction
+    object -- a sequence of bytes whose structure and meaning is defined by object.
+              An object's bytes can be considered the serialized form of its data.
+              Objects are organized as a tree.
+    perm   -- permissions
+    mode   -- a given objects mode of access
     stat   -- the object status, or object's meta-data
 
 MESSAGE HANDLING
