@@ -34,9 +34,9 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 
 // Creates a file in the directory associated with the fid. Returns nil
 // if the operation is successful.
-func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
+func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, extattr string) error {
 	tc := clnt.NewFcall()
-	err := tc.packTcreate(fid.Fid, name, perm, mode, ext, clnt.Dotu)
+	err := tc.packTcreate(fid.Fid, name, perm, mode, extattr)
 	if err != nil {
 		return err
 	}

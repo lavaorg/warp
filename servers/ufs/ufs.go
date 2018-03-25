@@ -38,16 +38,8 @@ type Ufs struct {
 }
 
 func toError(err error) *warp9.Error {
-	var ecode uint32
-
 	ename := err.Error()
-	if e, ok := err.(syscall.Errno); ok {
-		ecode = uint32(e)
-	} else {
-		ecode = warp9.EIO
-	}
-
-	return &warp9.Error{ename, ecode}
+	return &warp9.Error{ename, warp9.EIO}
 }
 
 // IsBlock reports if the file is a block device
@@ -88,7 +80,7 @@ func omode2uflags(mode uint8) int {
 		ret = os.O_WRONLY
 		break
 
-	case warp9.OEXEC:
+	case warp9.OUSE:
 		ret = os.O_RDONLY
 		break
 	}
@@ -115,11 +107,6 @@ func dir2QidType(d os.FileInfo) uint8 {
 	if d.IsDir() {
 		ret |= warp9.QTDIR
 	}
-
-	if d.Mode()&os.ModeSymlink != 0 {
-		ret |= warp9.QTSYMLINK
-	}
-
 	return ret
 }
 
@@ -128,34 +115,6 @@ func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 	if d.IsDir() {
 		ret |= warp9.DMDIR
 	}
-
-	if dotu {
-		mode := d.Mode()
-		if mode&os.ModeSymlink != 0 {
-			ret |= warp9.DMSYMLINK
-		}
-
-		if mode&os.ModeSocket != 0 {
-			ret |= warp9.DMSOCKET
-		}
-
-		if mode&os.ModeNamedPipe != 0 {
-			ret |= warp9.DMNAMEDPIPE
-		}
-
-		if mode&os.ModeDevice != 0 {
-			ret |= warp9.DMDEVICE
-		}
-
-		if mode&os.ModeSetuid != 0 {
-			ret |= warp9.DMSETUID
-		}
-
-		if mode&os.ModeSetgid != 0 {
-			ret |= warp9.DMSETGID
-		}
-	}
-
 	return ret
 }
 
@@ -221,20 +180,19 @@ func (dir *ufsDir) dotu(path string, d os.FileInfo, upool warp9.Users, sysMode *
 		dir.Gid = "none"
 	}
 	dir.Muid = "none"
-	dir.Ext = ""
-	dir.Uidnum = uint32(u.Id())
-	dir.Gidnum = uint32(g.Id())
-	dir.Muidnum = warp9.NOUID
+	dir.ExtAttr = ""
 	if d.Mode()&os.ModeSymlink != 0 {
 		var err error
-		dir.Ext, err = os.Readlink(path)
+		lnk, err := os.Readlink(path)
 		if err != nil {
-			dir.Ext = ""
+			dir.ExtAttr = ""
+		} else {
+			dir.ExtAttr = fmt.Sprintf("lnk=%s", lnk)
 		}
 	} else if isBlock(d) {
-		dir.Ext = fmt.Sprintf("b %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
+		dir.ExtAttr = fmt.Sprintf("b=%d:%d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
 	} else if isChar(d) {
-		dir.Ext = fmt.Sprintf("c %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
+		dir.ExtAttr = fmt.Sprintf("c=%d:%d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
 	}
 }
 
@@ -362,39 +320,8 @@ func (*Ufs) Create(req *warp9.SrvReq) {
 	case tc.Perm&warp9.DMDIR != 0:
 		e = os.Mkdir(path, os.FileMode(tc.Perm&0777))
 
-	case tc.Perm&warp9.DMSYMLINK != 0:
-		e = os.Symlink(tc.Ext, path)
-
-	case tc.Perm&warp9.DMLINK != 0:
-		n, e := strconv.ParseUint(tc.Ext, 10, 0)
-		if e != nil {
-			break
-		}
-
-		ofid := req.Conn.FidGet(uint32(n))
-		if ofid == nil {
-			req.RespondError(warp9.Err(warp9.Eunknownfid))
-			return
-		}
-
-		e = os.Link(ofid.Aux.(*ufsFid).path, path)
-		ofid.DecRef()
-
-	case tc.Perm&warp9.DMNAMEDPIPE != 0:
-	case tc.Perm&warp9.DMDEVICE != 0:
-		req.RespondError(warp9.Err(warp9.Enotimpl))
-		return
-
 	default:
 		var mode uint32 = tc.Perm & 0777
-		if req.Conn.Dotu {
-			if tc.Perm&warp9.DMSETUID > 0 {
-				mode |= syscall.S_ISUID
-			}
-			if tc.Perm&warp9.DMSETGID > 0 {
-				mode |= syscall.S_ISGID
-			}
-		}
 		file, e = os.OpenFile(path, omode2uflags(tc.Mode)|os.O_CREATE, os.FileMode(mode))
 	}
 
@@ -570,14 +497,6 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	dir := &req.Tc.Dir
 	if dir.Mode != 0xFFFFFFFF {
 		mode := dir.Mode & 0777
-		if req.Conn.Dotu {
-			if dir.Mode&warp9.DMSETUID > 0 {
-				mode |= syscall.S_ISUID
-			}
-			if dir.Mode&warp9.DMSETGID > 0 {
-				mode |= syscall.S_ISGID
-			}
-		}
 		e := os.Chmod(fid.path, os.FileMode(mode))
 		if e != nil {
 			req.RespondError(toError(e))
@@ -586,10 +505,6 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	}
 
 	uid, gid := warp9.NOUID, warp9.NOUID
-	if req.Conn.Dotu {
-		uid = dir.Uidnum
-		gid = dir.Gidnum
-	}
 
 	// Try to find local uid, gid by name.
 	if (dir.Uid != "" || dir.Gid != "") && !req.Conn.Dotu {

@@ -156,10 +156,10 @@ func (tag *Tag) Open(fid *Fid, mode uint8) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
+func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, extattr string) error {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := req.Tc.packTcreate(fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
+	err := req.Tc.packTcreate(fid.Fid, name, perm, mode, extattr)
 	if err != nil {
 		return err
 	}

@@ -54,15 +54,13 @@ const (
 
 // Qid types
 const (
-	QTDIR     = 0x80 // directories
-	QTAPPEND  = 0x40 // append only files
-	QTEXCL    = 0x20 // exclusive use files
-	QTMOUNT   = 0x10 // mounted channel
-	QTAUTH    = 0x08 // authentication file
-	QTTMP     = 0x04 // non-backed-up file
-	QTSYMLINK = 0x02 // symbolic link (Unix, 9P2000.u)
-	QTLINK    = 0x01 // hard link (Unix, 9P2000.u)
-	QTFILE    = 0x00
+	QTDIR    = 0x80 // directories
+	QTAPPEND = 0x40 // append only files
+	QTEXCL   = 0x20 // exclusive use files
+	QTMOUNT  = 0x10 // mounted channel
+	QTAUTH   = 0x08 // authentication file
+	QTTMP    = 0x04 // non-backed-up file
+	QTFILE   = 0x00
 )
 
 // Flags for the mode field in Topen and Tcreate messages
@@ -70,9 +68,8 @@ const (
 	OREAD   = 0  // open read-only
 	OWRITE  = 1  // open write-only
 	ORDWR   = 2  // open read-write
-	OEXEC   = 3  // execute (== read but check execute permission)
-	OTRUNC  = 16 // or'ed in (except for exec), truncate file first
-	OCEXEC  = 32 // or'ed in, close on exec
+	OUSE    = 3  // USE; directories can be used for walk without Read perm
+	OTRUNC  = 16 // or'ed in truncate file first
 	ORCLOSE = 64 // or'ed in, remove on close
 )
 
@@ -81,26 +78,15 @@ const (
 	// file types -- high order 8bits
 	DMMASK   = 0xFF000000 // masks for top 8bits
 	DMDIR    = 0x80000000 // mode bit for directories
-	DMAPPEND = 0x40000000 // mode bit for append only files, offset ignored in write
-	DMEXCL   = 0x20000000 // mode bit for exclusive use files; one client open at a time
-	DMMOUNT  = 0x10000000 // mode bit for mounted channel
+	DMAPPEND = 0x40000000 // mode bit for append only objects, offset ignored in write
+	DMEXCL   = 0x20000000 // mode bit for exclusive use objects; one client open at a time
 	DMAUTH   = 0x08000000 // mode bit for authentication file
 	DMTMP    = 0x04000000 // mode bit for non-backed-up file
 
 	// permissions
 	DMREAD  = 0x4 // mode bit for read permission
 	DMWRITE = 0x2 // mode bit for write permission
-	DMEXEC  = 0x1 // mode bit for execute permission
-
-	// Deprecated 9P2000.u
-	DMSYMLINK   = 0x02000000 // mode bit for symbolic link (Unix, 9P2000.u)
-	DMLINK      = 0x01000000 // mode bit for hard link (Unix, 9P2000.u)
-	DMDEVICE    = 0x00800000 // mode bit for device file (Unix, 9P2000.u)
-	DMNAMEDPIPE = 0x00200000 // mode bit for named pipe (Unix, 9P2000.u)
-	DMSOCKET    = 0x00100000 // mode bit for socket (Unix, 9P2000.u)
-	DMSETUID    = 0x00080000 // mode bit for setuid (Unix, 9P2000.u)
-	DMSETGID    = 0x00040000 // mode bit for setgid (Unix, 9P2000.u)
-
+	DMUSE   = 0x1 // mode bit for execute permission
 )
 
 const (
@@ -111,44 +97,19 @@ const (
 
 // Error values
 const (
-	EPERM   = 1
-	ENOENT  = 2
-	EIO     = 5
-	EEXIST  = 17
-	ENOTDIR = 20
-	EINVAL  = 22
-)
-
-// errors similar to plan9port
-const (
-	Eperm       = "permission denied"
-	Enotdir     = "not a directory"
-	Enoauth     = "upas/fs: authentication not required"
-	Enotexist   = "file does not exist"
-	Einuse      = "file in use"
-	Eexist      = "file exists"
-	Enotowner   = "not owner"
-	Eisopen     = "file already open for I/O"
-	Excl        = "exclusive use file already open"
-	Ename       = "illegal name"
-	Ebadctl     = "unknown control message"
-	Eunknownfid = "unknown fid"
-	Ebaduse     = "bad use of fid"
-	Eopen       = "fid already opened"
-	Etoolarge   = "i/o count too large"
-	Ebadoffset  = "bad offset in directory read"
-	Edirchange  = "cannot convert between files and directories"
-	Enouser     = "unknown user"
-	Enotimpl    = "not implemented"
-	Enotempty   = "directory not empty"
-	Enoent      = "no entry found in walk"
-	Enotopen    = "file not open"
+	EGOOD   = 0
+	EPERM   = -1
+	ENOENT  = -2
+	EIO     = -3
+	EEXIST  = -4
+	ENOTDIR = -5
+	EINVAL  = -6
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
 	Err      string // textual representation of the error
-	Errornum uint32 // numeric representation of the error (9P2000.u)
+	Errornum int16  // numeric representation of the error (9P2000.u)
 }
 
 func Err(s string) error {
@@ -173,15 +134,10 @@ type Dir struct {
 	Mtime   uint32 // last modified time in seconds
 	Length  uint64 // file length in bytes
 	Name    string // file name
-	Uid     string // owner name
-	Gid     string // group name
-	Muid    string // name of the last user that modified the file
-
-	/* 9P2000.u extension */
-	Ext     string // special file's descriptor
-	Uidnum  uint32 // owner ID
-	Gidnum  uint32 // group ID
-	Muidnum uint32 // ID of the last user that modified the file
+	Uid     string // owner id
+	Gid     string // group id
+	Muid    string // id of the last user that modified the file
+	ExtAttr string // extended attributes
 }
 
 // Interface for accessing users and groups
@@ -357,21 +313,6 @@ func gstat(buf []byte, d *Dir, dotu bool) ([]byte, error) {
 		return nil, &Error{"d.Muid failed", EINVAL}
 	}
 
-	if dotu {
-		d.Ext, buf = gstr(buf)
-		if buf == nil {
-			return nil, &Error{"d.Ext failed", EINVAL}
-		}
-
-		d.Uidnum, buf = gint32(buf)
-		d.Gidnum, buf = gint32(buf)
-		d.Muidnum, buf = gint32(buf)
-	} else {
-		d.Uidnum = NOUID
-		d.Gidnum = NOUID
-		d.Muidnum = NOUID
-	}
-
 	return buf, nil
 }
 
@@ -424,10 +365,6 @@ func pqid(val *Qid, buf []byte) []byte {
 
 func statsz(d *Dir, dotu bool) int {
 	sz := 2 + 2 + 4 + 13 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 + len(d.Name) + len(d.Uid) + len(d.Gid) + len(d.Muid)
-	if dotu {
-		sz += 2 + 4 + 4 + 4 + len(d.Ext)
-	}
-
 	return sz
 }
 
@@ -445,13 +382,6 @@ func pstat(d *Dir, buf []byte, dotu bool) []byte {
 	buf = pstr(d.Uid, buf)
 	buf = pstr(d.Gid, buf)
 	buf = pstr(d.Muid, buf)
-	if dotu {
-		buf = pstr(d.Ext, buf)
-		buf = pint32(d.Uidnum, buf)
-		buf = pint32(d.Gidnum, buf)
-		buf = pint32(d.Muidnum, buf)
-	}
-
 	return buf
 }
 

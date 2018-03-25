@@ -223,7 +223,7 @@ func (clnt *Clnt) recv() {
 					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
 					if r.Err == nil {
-						r.Err = &Error{r.Rc.Error, r.Rc.Errornum}
+						r.Err = &Error{r.Rc.Error, EINVAL}
 					}
 				}
 			}

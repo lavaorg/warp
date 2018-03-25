@@ -35,11 +35,12 @@ type Fcall struct {
 	Count   uint32   // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
 	Data    []uint8  // data read/to-write (used by Rread, Twrite)
 	Dir              // file description (used by Rstat, Twstat)
+	ExtAttr string   // used by Tcreate
 
 	/* 9P2000.u extensions */
-	Errornum uint32 // error code, 9P2000.u only (used by Rerror)
-	Ext      string // special file description, 9P2000.u only (used by Tcreate)
-	Unamenum uint32 // user ID, 9P2000.u only (used by Tauth, Tattach)
+	//Errornum int16  // error code, 9P2000.u only (used by Rerror)
+	//Ext      string // special file description, 9P2000.u only (used by Tcreate)
+	//Unamenum uint32 // user ID, 9P2000.u only (used by Tauth, Tattach)
 
 	Pkt []uint8 // raw packet data
 	Buf []uint8 // buffer to put the raw data in
@@ -145,16 +146,6 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			goto szerror
 		}
 
-		if dotu {
-			if len(p) > 0 {
-				fc.Unamenum, p = gint32(p)
-			} else {
-				fc.Unamenum = NOUID
-			}
-		} else {
-			fc.Unamenum = NOUID
-		}
-
 	case Rauth, Rattach:
 		p = gqid(p, &fc.Qid)
 
@@ -174,23 +165,10 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			goto szerror
 		}
 
-		if dotu {
-			if len(p) > 0 {
-				fc.Unamenum, p = gint32(p)
-			} else {
-				fc.Unamenum = NOUID
-			}
-		}
-
 	case Rerror:
 		fc.Error, p = gstr(p)
 		if p == nil {
 			goto szerror
-		}
-		if dotu {
-			fc.Errornum, p = gint32(p)
-		} else {
-			fc.Errornum = 0
 		}
 
 	case Twalk:
@@ -228,12 +206,6 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 		}
 		fc.Perm, p = gint32(p)
 		fc.Mode, p = gint8(p)
-		if dotu {
-			fc.Ext, p = gstr(p)
-			if p == nil {
-				goto szerror
-			}
-		}
 
 	case Tread:
 		fc.Fid, p = gint32(p)

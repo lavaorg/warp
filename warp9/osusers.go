@@ -22,7 +22,7 @@ type osUsers struct {
 // by uid only. The names and groups memberships are empty
 var OsUsers *osUsers
 
-func (u *osUser) Name() string { return "" }
+func (u *osUser) Name() string { return "staff" }
 
 func (u *osUser) Id() int { return u.uid }
 
@@ -34,7 +34,7 @@ type osGroup struct {
 	gid int
 }
 
-func (g *osGroup) Name() string { return "" }
+func (g *osGroup) Name() string { return "staff" }
 
 func (g *osGroup) Id() int { return g.gid }
 

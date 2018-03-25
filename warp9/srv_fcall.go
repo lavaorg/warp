@@ -56,9 +56,7 @@ func (srv *Srv) auth(req *SrvReq) {
 	}
 
 	var user User = nil
-	if tc.Unamenum != NOUID || conn.Dotu {
-		user = srv.Upool.Uid2User(int(tc.Unamenum))
-	} else if tc.Uname != "" {
+	if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
 	}
 
@@ -111,16 +109,14 @@ func (srv *Srv) attach(req *SrvReq) {
 	}
 
 	var user User = nil
-	if tc.Unamenum != NOUID || conn.Dotu {
-		user = srv.Upool.Uid2User(int(tc.Unamenum))
-	} else if tc.Uname != "" {
+	if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
 	}
 
-	if user == nil {
-		req.RespondError(Err(Enouser))
-		return
-	}
+	//if user == nil {
+	//	req.RespondError(Err(Enouser))
+	//	return
+	//}
 
 	req.Fid.User = user
 	if aop, ok := (srv.ops).(AuthOps); ok {
@@ -271,12 +267,6 @@ func (srv *Srv) create(req *SrvReq) {
 
 	/* can't open directories for other than reading */
 	if (tc.Perm&DMDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Err(Eperm))
-		return
-	}
-
-	/* can't create special files if not 9P2000.u */
-	if (tc.Perm&(DMNAMEDPIPE|DMSYMLINK|DMLINK|DMDEVICE|DMSOCKET)) != 0 && !req.Conn.Dotu {
 		req.RespondError(Err(Eperm))
 		return
 	}

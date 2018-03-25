@@ -75,23 +75,18 @@ func (f *W9File) Add(dir *W9File, name string, uid warp9.User, gid warp9.Group, 
 	f.Name = name
 	if uid != nil {
 		f.Uid = uid.Name()
-		f.Uidnum = uint32(uid.Id()) //9P2000.u
 	} else {
 		f.Uid = "none"
-		f.Uidnum = warp9.NOUID //9P2000.u
 	}
 
 	if gid != nil {
 		f.Gid = gid.Name()
-		f.Gidnum = uint32(gid.Id()) //9P2000.u
 	} else {
 		f.Gid = "none"
-		f.Gidnum = warp9.NOUID //9P2000.u
 	}
 
 	f.Muid = ""
-	f.Muidnum = warp9.NOUID
-	f.Ext = ""
+	f.ExtAttr = ""
 
 	// add f as entry in dir
 	if dir != nil {
@@ -197,7 +192,7 @@ func (f *W9File) CheckPerm(user warp9.User, perm uint32) bool {
 	}
 
 	/* user permissions */
-	if f.Uid == user.Name() || f.Uidnum == uint32(user.Id()) {
+	if f.Uid == user.Name() {
 		fperm |= (f.Mode >> 6) & 7
 	}
 
@@ -209,7 +204,7 @@ func (f *W9File) CheckPerm(user warp9.User, perm uint32) bool {
 	groups := user.Groups()
 	if groups != nil && len(groups) > 0 {
 		for i := 0; i < len(groups); i++ {
-			if f.Gid == groups[i].Name() || f.Gidnum == uint32(groups[i].Id()) {
+			if f.Gid == groups[i].Name() {
 				fperm |= (f.Mode >> 3) & 7
 				break
 			}

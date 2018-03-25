@@ -22,7 +22,7 @@ type SrvReqOps interface {
 // Respond to the request with Rerror message
 func (req *SrvReq) RespondError(err error) {
 
-	req.Rc.packRerror(err.Error(), uint32(EIO), req.Conn.Dotu)
+	req.Rc.packRerror(err.Error())
 	req.Respond()
 }
 

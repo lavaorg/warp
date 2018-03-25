@@ -39,10 +39,6 @@ func (fc *Fcall) packTauth(fid uint32, uname string, aname string, unamenum uint
 	p = pint32(fid, p)
 	p = pstr(uname, p)
 	p = pstr(aname, p)
-	if dotu {
-		fc.Unamenum = unamenum
-		p = pint32(unamenum, p)
-	}
 
 	return nil
 }
@@ -81,10 +77,6 @@ func (fc *Fcall) packTattach(fid uint32, afid uint32, uname string, aname string
 	p = pint32(afid, p)
 	p = pstr(uname, p)
 	p = pstr(aname, p)
-	if dotu {
-		fc.Unamenum = unamenum
-		p = pint32(unamenum, p)
-	}
 
 	return nil
 }
@@ -134,12 +126,10 @@ func (fc *Fcall) packTopen(fid uint32, mode uint8) error {
 // Create a Tcreate message in the specified Fcall. If dotu is true,
 // the function will create a 9P2000.u message that includes ext.
 // Otherwise the ext value is ignored.
-func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, ext string, dotu bool) error {
+func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, extattr string) error {
 	size := 4 + 2 + len(name) + 4 + 1 /* fid[4] name[s] perm[4] mode[1] */
 
-	if dotu {
-		size += 2 + len(ext)
-	}
+	//RAU extattr size += 2 + len(extattr)
 
 	p, err := fc.packCommon(size, Tcreate)
 	if err != nil {
@@ -155,10 +145,9 @@ func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, e
 	p = pint32(perm, p)
 	p = pint8(mode, p)
 
-	if dotu {
-		fc.Ext = ext
-		p = pstr(ext, p)
-	}
+	//RAU extended attr ExtAttr
+	fc.ExtAttr = extattr
+	//p = pstr(extattr, p)
 
 	return nil
 }

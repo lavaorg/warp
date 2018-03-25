@@ -33,19 +33,10 @@ func (fc *Fcall) packRauth(aqid *Qid) error {
 	return nil
 }
 
-// Create a Rerror message in the specified Fcall. If dotu is true,
-// the function will create a 9P2000.u message. If false, errornum is
-// ignored.
-// this whole blob of code
-// needs a redo. dotu is even worse, since it bakes in ONE PARTICULAR
-// EXTENSION ...
-
-func (fc *Fcall) packRerror(error string, errornum uint32, dotu bool) error {
+// Create a Rerror message in the specified Fcall.
+func (fc *Fcall) packRerror(error string) error {
 
 	size := 2 + len(error) /* ename[s] */
-	if dotu {
-		size += 4 /* ecode[4] */
-	}
 
 	p, err := fc.packCommon(size, Rerror)
 	if err != nil {
@@ -54,10 +45,6 @@ func (fc *Fcall) packRerror(error string, errornum uint32, dotu bool) error {
 
 	fc.Error = error
 	p = pstr(error, p)
-	if dotu {
-		fc.Errornum = errornum
-		p = pint32(errornum, p)
-	}
 
 	return nil
 }

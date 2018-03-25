@@ -31,22 +31,6 @@ func permToString(perm uint32) string {
 		if perm&DMTMP != 0 {
 			ret += "t"
 		}
-
-		if perm&DMDEVICE != 0 {
-			ret += "D"
-		}
-
-		if perm&DMSOCKET != 0 {
-			ret += "S"
-		}
-
-		if perm&DMNAMEDPIPE != 0 {
-			ret += "P"
-		}
-
-		if perm&DMSYMLINK != 0 {
-			ret += "L"
-		}
 	}
 
 	ret += fmt.Sprintf("%s", p2str(perm&0777))
@@ -86,9 +70,6 @@ func (qid *Qid) String() string {
 		if qid.Type&QTTMP != 0 {
 			b += "t"
 		}
-		if qid.Type&QTSYMLINK != 0 {
-			b += "L"
-		}
 	}
 
 	return fmt.Sprintf("(%s.%x.%x)", b, qid.Version, qid.Path)
@@ -113,19 +94,19 @@ func (fc *Fcall) String() string {
 	case Rversion:
 		ret = fmt.Sprintf("Rversion tag %d msize %d version '%s'", fc.Tag, fc.Msize, fc.Version)
 	case Tauth:
-		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' nuname %d aname '%s'",
-			fc.Tag, fc.Afid, fc.Uname, fc.Unamenum, fc.Aname)
+		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' aname '%s'",
+			fc.Tag, fc.Afid, fc.Uname, fc.Aname)
 	case Rauth:
 		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Rattach:
 		ret = fmt.Sprintf("Rattach tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Tattach:
-		ret = fmt.Sprintf("Tattach tag %d fid %d afid %d uname '%s' nuname %d aname '%s'",
-			fc.Tag, fc.Fid, fc.Afid, fc.Uname, fc.Unamenum, fc.Aname)
+		ret = fmt.Sprintf("Tattach tag %d fid %d afid %d uname '%s' aname '%s'",
+			fc.Tag, fc.Fid, fc.Afid, fc.Uname, fc.Aname)
 	case Tflush:
 		ret = fmt.Sprintf("Tflush tag %d oldtag %d", fc.Tag, fc.Oldtag)
 	case Rerror:
-		ret = fmt.Sprintf("Rerror tag %d ename '%s' ecode %d", fc.Tag, fc.Error, fc.Errornum)
+		ret = fmt.Sprintf("Rerror tag %d ename '%s'", fc.Tag, fc.Error)
 	case Twalk:
 		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d [", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {

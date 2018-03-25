@@ -24,6 +24,7 @@ func main() {
 	flag.Parse()
 
 	uid := warp9.OsUsers.Uid2User(os.Geteuid())
+
 	warp9.DefaultDebuglevel = *dbglev
 
 	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, uid)
@@ -145,13 +146,13 @@ func cmdstat(c9 *warp9.Clnt) {
 		fmt.Printf("%v\n", d)
 	} else {
 		fmt.Printf("Name: %s\n", d.Name)
-		fmt.Printf("UID/GID: [%x]%s / [%x]%s\n", d.Uidnum, d.Uid, d.Gidnum, d.Gid)
+		fmt.Printf("UID/GID: %s / %s\n", d.Uid, d.Gid)
 		fmt.Printf("Type: %x\n", d.Type)
 		fmt.Printf("Dev: %x\n", d.Dev)
 		fmt.Printf("Last Access: %v\n", d.Atime)
 		fmt.Printf("Last Modified: %v\n", d.Mtime)
-		fmt.Printf("last mod uid: [%x]%s\n", d.Muidnum, d.Muid)
-		fmt.Printf("Extensions: %s\n", d.Ext)
+		fmt.Printf("last mod uid: %s\n", d.Muid)
+		fmt.Printf("Extensions: %s\n", d.ExtAttr)
 	}
 
 }

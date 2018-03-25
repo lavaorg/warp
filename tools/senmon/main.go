@@ -19,6 +19,7 @@ var verbose = flag.Bool("v", false, "verbose mode")
 var dbglev = flag.Int("d", 0, "debuglevel")
 var addr = flag.String("a", "127.0.0.1:9901", "network address")
 var aname = flag.String("aname", ".", "path on server to use as root")
+var alt = flag.String("alt", "192.168.1.112", "alternate reporting address")
 
 func main() {
 
@@ -72,6 +73,9 @@ func handleConnection(c net.Conn) {
 	// read target sensor
 	readSensor(c9)
 
+	// reconfigure the target if necessar
+	reconfigSensor(c9)
+
 	// close connection
 	c9.Clunk(c9.Root)
 	c9.Unmount()
@@ -116,9 +120,9 @@ func readSensor(c9 *warp9.Clnt) {
 		mlog.Error("could not Walk:%v", err)
 		return
 	}
+	defer c9.Clunk(fid)
 	err = c9.Open(fid, warp9.OREAD)
 	if err != nil {
-		c9.Clunk(fid)
 		mlog.Error("open failed:%v", err)
 		return
 	}
@@ -129,5 +133,34 @@ func readSensor(c9 *warp9.Clnt) {
 	} else {
 		mlog.Info("%v", string(buf))
 	}
-	c9.Clunk(fid)
+}
+
+var reportCount = 0
+
+// every 10 readings we will reconfigure the sensor to report
+// somewere else.
+func reconfigSensor(c9 *warp9.Clnt) {
+	reportCount++
+
+	if reportCount > 2 {
+		reportCount = 0
+		fid, err := c9.FWalk("ctl")
+		if err != nil {
+			mlog.Error("could not Walk:%v", err)
+			return
+		}
+		defer c9.Clunk(fid)
+		err = c9.Open(fid, warp9.OWRITE)
+		if err != nil {
+			mlog.Error("open failed:%v", err)
+			return
+		}
+		data := []byte("ip:" + *alt)
+		cnt, err := c9.Write(fid, data, 0)
+		if err != nil {
+			mlog.Error("Error:%v\n", err)
+		} else {
+			mlog.Info("ctl: ip:%v [%d]", alt, cnt)
+		}
+	}
 }

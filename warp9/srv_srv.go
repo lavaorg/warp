@@ -1,9 +1,9 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// license that can be found in the LICENSE object.
 
 // The srv* files provides definitions and functions used to implement
-// a Warp9 file server.
+// a Warp9 object server.
 package warp9
 
 import (
@@ -21,16 +21,16 @@ const (
 	reqSaved                             /* no response was produced after the request is worked on */
 )
 
-// Authentication operations. The file server should implement them if
+// Authentication operations. The object server should implement them if
 // it requires user authentication. The authentication in Warp9 is
 // done by creating special authentication fids and performing I/O
 // operations on them. Once the authentication is done, the authentication
-// fid can be used by the user to get access to the actual files.
+// fid can be used by the user to get access to the actual objects.
 type AuthOps interface {
 	// AuthInit is called when the user starts the authentication
 	// process on SrvFid afid. The user that is being authenticated
 	// is referred by afid.User. The function should return the Qid
-	// for the authentication file, or an Error if the user can't be
+	// for the authentication object, or an Error if the user can't be
 	// authenticated
 	AuthInit(afid *SrvFid, aname string) (*Qid, error)
 
@@ -38,9 +38,9 @@ type AuthOps interface {
 	AuthDestroy(afid *SrvFid)
 
 	// AuthCheck is called after the authentication process is finished
-	// when the user tries to attach to the file server. If the function
+	// when the user tries to attach to the object server. If the function
 	// returns nil, the authentication was successful and the user has
-	// permission to access the files.
+	// permission to access the objects.
 	AuthCheck(fid *SrvFid, afid *SrvFid, aname string) error
 
 	// AuthRead is called when the user attempts to read data from an
@@ -52,20 +52,20 @@ type AuthOps interface {
 	AuthWrite(afid *SrvFid, offset uint64, data []byte) (count int, err error)
 }
 
-// Connection operations. These should be implemented if the file server
+// Connection operations. These should be implemented if the object server
 // needs to be called when a connection is opened or closed.
 type ConnOps interface {
 	ConnOpened(*Conn)
 	ConnClosed(*Conn)
 }
 
-// SrvFid operations. This interface should be implemented if the file server
+// SrvFid operations. This interface should be implemented if the object server
 // needs to be called when a SrvFid is destroyed.
 type SrvFidOps interface {
 	FidDestroy(*SrvFid)
 }
 
-// Request operations. This interface should be implemented if the file server
+// Request operations. This interface should be implemented if the object server
 // needs to bypass the default request process, or needs to perform certain
 // operations before the (any) request is processed, or before (any) response
 // sent back to the client.
@@ -87,9 +87,9 @@ type SrvReqProcessOps interface {
 	SrvReqRespond(*SrvReq)
 }
 
-// Flush operation. This interface should be implemented if the file server
+// Flush operation. This interface should be implemented if the object server
 // can flush pending requests. If the interface is not implemented, requests
-// that were passed to the file server implementation won't be flushed.
+// that were passed to the object server implementation won't be flushed.
 // The flush method should call the (req *SrvReq) srv.Flush() method if the flush
 // was successful so the request can be marked appropriately.
 type FlushOp interface {
@@ -97,17 +97,17 @@ type FlushOp interface {
 }
 
 // The Srv type contains the basic fields used to control the Warp9
-// file server. Each file server implementation should create a value
+// object server. Each server implementation should create a value
 // of Srv type, initialize the values it cares about and pass the
 // struct to the (Srv *) srv.Start(ops) method together with the object
-// that implements the file server operations.
+// that implements the object server operations.
 type Srv struct {
 	sync.Mutex
 	Id         string // Used for debugging and stats
 	Msize      uint32 // Maximum size of the Warp9 messages supported by the server
 	Dotu       bool   // If true, the server supports the Warp9.u extension
 	Debuglevel int    // debug level
-	Upool      Users  // Interface for finding users and groups known to the file server
+	Upool      Users  // Interface for finding users and groups known to the object server
 	Maxpend    int    // Maximum pending outgoing requests
 	Log        *Logger
 
@@ -115,7 +115,7 @@ type Srv struct {
 	conns map[*Conn]*Conn // List of connections
 }
 
-// The Conn type represents a connection from a client to the file server
+// The Conn type represents a connection from a client to the object server
 type Conn struct {
 	sync.Mutex
 	Srv        *Srv
@@ -142,9 +142,9 @@ type Conn struct {
 	nwrites int    // number of writes
 }
 
-// The SrvFid type identifies a file on the file server.
-// A new SrvFid is created when the user attaches to the file server (the Attach
-// operation), or when Walk-ing to a file. The SrvFid values are created
+// The SrvFid type identifies a object on the object server.
+// A new SrvFid is created when the user attaches to the object server (the Attach
+// operation), or when Walk-ing to a object. The SrvFid values are created
 // automatically by the srv implementation. The SrvFidDestroy operation is called
 // when a SrvFid is destroyed.
 type SrvFid struct {
@@ -158,7 +158,7 @@ type SrvFid struct {
 	Diroffset uint64      // If directory, the next valid read position
 	Dirents   []byte      // If directory, the serialized dirents
 	User      User        // The SrvFid's user
-	Aux       interface{} // Can be used by the file server implementation for per-SrvFid data
+	Aux       interface{} // Can be used by the object server implementation for per-SrvFid data
 }
 
 // The SrvReq type represents a Warp9 request. Each request has a
@@ -180,11 +180,11 @@ type SrvReq struct {
 	prev, next *SrvReq
 }
 
-// The Start method should be called once the file server implementor
+// The Start method should be called once the object server implementor
 // initializes the Srv struct with the preferred values. It sets default
 // values to the fields that are not initialized and creates the goroutines
 // required for the server's operation. The method receives an empty
-// interface value, ops, that should implement the interfaces the file server is
+// interface value, ops, that should implement the interfaces the object server is
 // interested in. Ops must implement the SrvReqOps interface.
 func (srv *Srv) Start(ops interface{}) bool {
 	if _, ok := (ops).(SrvReqOps); !ok {
@@ -244,8 +244,8 @@ func (req *SrvReq) process() {
 
 // Performs the default processing of a request. Initializes
 // the SrvFid, Afid and Newfid fields and calls the appropriate
-// SrvReqOps operation for the message. The file server implementer
-// should call it only if the file server implements the SrvReqProcessOps
+// SrvReqOps operation for the message. The object server implementer
+// should call it only if the object server implements the SrvReqProcessOps
 // within the SrvReqProcess operation.
 func (req *SrvReq) Process() {
 	conn := req.Conn
@@ -308,8 +308,8 @@ func (req *SrvReq) Process() {
 }
 
 // Performs the post processing required if the (*SrvReq) Process() method
-// is called for a request. The file server implementer should call it
-// only if the file server implements the SrvReqProcessOps within the
+// is called for a request. The object server implementer should call it
+// only if the object server implements the SrvReqProcessOps within the
 // SrvReqRespond operation.
 func (req *SrvReq) PostProcess() {
 	srv := req.Conn.Srv
@@ -359,7 +359,7 @@ func (req *SrvReq) PostProcess() {
 
 // The Respond method sends response back to the client. The req.Rc value
 // should be initialized and contain valid Warp9 message. In most cases
-// the file server implementer shouldn't call this method directly. Instead
+// the object server implementer shouldn't call this method directly. Instead
 // one of the RespondR* methods should be used.
 func (req *SrvReq) Respond() {
 	var flushreqs *SrvReq

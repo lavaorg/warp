@@ -27,7 +27,7 @@ func (*W9Srv) Walk(req *warp9.SrvReq) {
 			continue
 		}
 		if (wqids[i].Type & warp9.QTDIR) > 0 {
-			if !f.CheckPerm(req.Fid.User, warp9.DMEXEC) {
+			if !f.CheckPerm(req.Fid.User, warp9.DMUSE) {
 				break
 			}
 		}
