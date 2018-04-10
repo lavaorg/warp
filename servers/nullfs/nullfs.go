@@ -85,7 +85,7 @@ func (*Nullfs) FidDestroy(sfid *warp9.SrvFid) {
 
 func (ufs *Nullfs) Attach(req *warp9.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(warp9.Err(warp9.Enoauth))
+		req.RespondError(warp9.Enoauth)
 		return
 	}
 	//tc := req.Tc
@@ -103,7 +103,7 @@ func (*Nullfs) Walk(req *warp9.SrvReq) {
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError(warp9.Err(warp9.Ebaduse))
+		req.RespondError(warp9.Ebaduse)
 		return
 	}
 
@@ -114,12 +114,12 @@ func (*Nullfs) Walk(req *warp9.SrvReq) {
 	// there are no entries so if path is not "." or ".." or "/" return an error
 	// "." and ".." by definition are alias for the current node, so valid.
 	if len(tc.Wname) != 1 {
-		req.RespondError(warp9.Err(warp9.Enotexist)) //warp9.Enoent)
+		req.RespondError(warp9.Enotexist) //warp9.Enoent)
 		return
 	}
 	p := tc.Wname[0]
 	if p != "." && p != ".." && p != "/" {
-		req.RespondError(warp9.Err(warp9.Enotexist))
+		req.RespondError(warp9.Enotexist)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (*Nullfs) Open(req *warp9.SrvReq) {
 	tc := req.Tc
 	mode := tc.Mode
 	if mode != warp9.OREAD {
-		req.RespondError(warp9.Err(warp9.Eperm))
+		req.RespondError(warp9.Eperm)
 		return
 	}
 
@@ -144,7 +144,7 @@ func (*Nullfs) Open(req *warp9.SrvReq) {
 
 func (*Nullfs) Create(req *warp9.SrvReq) {
 	// no creation
-	req.RespondError(warp9.Err(warp9.Enotimpl))
+	req.RespondError(warp9.Enotimpl)
 }
 
 func (*Nullfs) Read(req *warp9.SrvReq) {
@@ -154,7 +154,7 @@ func (*Nullfs) Read(req *warp9.SrvReq) {
 	rc.InitRread(tc.Count)
 
 	// convert our directory to byte buffer; we aren't caching
-	b := warp9.PackDir(&root.Dir, req.Conn.Dotu)
+	b := warp9.PackDir(&root.Dir)
 
 	// determine which and how many bytes to return
 	var count int
@@ -173,22 +173,22 @@ func (*Nullfs) Read(req *warp9.SrvReq) {
 }
 
 func (*Nullfs) Write(req *warp9.SrvReq) {
-	req.RespondError(&warp9.Error{"write not supported", warp9.EIO})
+	req.RespondError(warp9.Enotimpl)
 	return
 }
 
 func (*Nullfs) Clunk(req *warp9.SrvReq) { req.RespondRclunk() }
 
 func (*Nullfs) Remove(req *warp9.SrvReq) {
-	req.RespondError(&warp9.Error{"remove not supported", warp9.EIO})
+	req.RespondError(warp9.Enotimpl)
 	return
 }
 
 func (*Nullfs) Stat(req *warp9.SrvReq) {
-	req.RespondError(&warp9.Error{"stat not supported", warp9.EIO})
+	req.RespondError(warp9.Enotimpl)
 	return
 }
 func (u *Nullfs) Wstat(req *warp9.SrvReq) {
-	req.RespondError(&warp9.Error{"wstat not supported", warp9.EIO})
+	req.RespondError(warp9.Enotimpl)
 	return
 }

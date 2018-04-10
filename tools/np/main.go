@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 
@@ -23,13 +22,13 @@ func main() {
 
 	flag.Parse()
 
-	uid := warp9.OsUsers.Uid2User(os.Geteuid())
-
+	uid := uint32(0xFFFFFFFF & os.Getuid())
+	user := warp9.Identity.User(uid)
 	warp9.DefaultDebuglevel = *dbglev
 
-	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, uid)
-	if err != nil {
-		log.Fatalf("Error:%v\n", err)
+	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, user)
+	if err != warp9.Egood {
+		log.Fatalf("Error:%v:%v\n", err, err.String())
 	}
 
 	if flag.NArg() != 2 {
@@ -67,7 +66,7 @@ func usage() {
 
 func cmdcat(c9 *warp9.Clnt) {
 	f, err := c9.FOpen(flag.Arg(1), warp9.OREAD)
-	if err != nil {
+	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
 	defer f.Close()
@@ -78,16 +77,16 @@ func cmdcat(c9 *warp9.Clnt) {
 		if n == 0 {
 			break
 		}
-		if err != nil {
+		if err != warp9.Egood {
 			log.Fatal("Error reading:%v\n", err)
 		}
 		os.Stdout.Write(buf[0:n])
-		if err == io.EOF {
+		if err == warp9.Eeof {
 			break
 		}
 	}
 
-	if err != nil && err != io.EOF {
+	if err != warp9.Egood && err != warp9.Eeof {
 		log.Fatalf("Error:%v\n", err)
 	}
 
@@ -96,7 +95,7 @@ func cmdcat(c9 *warp9.Clnt) {
 func cmdls(c9 *warp9.Clnt) {
 
 	fid, err := c9.FWalk(flag.Arg(1))
-	if err != nil {
+	if err != warp9.Egood {
 		mlog.Error("error:%v", err)
 		return
 	}
@@ -106,7 +105,7 @@ func cmdls(c9 *warp9.Clnt) {
 	if fid.Qid.Type&warp9.QTDIR > 0 {
 		// read directory
 		f, err := c9.FFidOpen(fid, warp9.OREAD)
-		if err != nil {
+		if err != warp9.Egood {
 			mlog.Error("error:%v", err)
 			return
 		}
@@ -114,7 +113,7 @@ func cmdls(c9 *warp9.Clnt) {
 		mlog.Debug("fid opened; readdir:%v", fid)
 		for {
 			d, err := f.Readdir(0)
-			if d == nil || len(d) == 0 || err != nil {
+			if d == nil || len(d) == 0 || err != warp9.Egood {
 				break
 			}
 			for i := 0; i < len(d); i++ {
@@ -124,20 +123,20 @@ func cmdls(c9 *warp9.Clnt) {
 	} else {
 		// stat the file
 		d, err := c9.Stat(fid)
-		if err != nil {
+		if err != warp9.Egood {
 			log.Println("Error", err)
 			return
 		}
 		fmt.Printf("%v\n", d)
 	}
-	if err != nil && err != io.EOF {
+	if err != warp9.Egood && err != warp9.Eeof {
 		log.Fatal(err)
 	}
 }
 
 func cmdstat(c9 *warp9.Clnt) {
 	d, err := c9.FStat(flag.Arg(1))
-	if err != nil {
+	if err != warp9.Egood {
 		log.Println("Error", err)
 		return
 	}
@@ -160,12 +159,12 @@ func cmdstat(c9 *warp9.Clnt) {
 func cmdfcat(c9 *warp9.Clnt) {
 
 	err := c9.Open(c9.Root, warp9.OREAD)
-	if err != nil {
+	if err != warp9.Egood {
 		log.Fatalf("open err:%v\n", err)
 	}
 
 	buf, err := c9.Read(c9.Root, uint64(0), uint32(10))
-	if err != nil {
+	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
 

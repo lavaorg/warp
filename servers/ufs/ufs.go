@@ -42,6 +42,20 @@ func toError(err error) *warp9.Error {
 	return &warp9.Error{ename, warp9.EIO}
 }
 
+// Error codes for UFS
+const (
+	EUFSstat = iota + 900
+	EUFSopen
+	EUFScreate
+	EUFSread
+	EUFSwrite
+	EUFSremove
+	EUFSchmod
+	EUFSchown
+	EUFSrename
+	EUFStruncate
+)
+
 // IsBlock reports if the file is a block device
 func isBlock(d os.FileInfo) bool {
 	stat := d.Sys().(*syscall.Stat_t)
@@ -54,15 +68,13 @@ func isChar(d os.FileInfo) bool {
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
 
-func (fid *ufsFid) stat() *warp9.Error {
+func (fid *ufsFid) stat() warp9.W9Err {
 	var err error
-
 	fid.st, err = os.Lstat(fid.path)
 	if err != nil {
-		return toError(err)
+		return EUFSstat
 	}
-
-	return nil
+	return 0
 }
 
 func omode2uflags(mode uint8) int {
@@ -110,7 +122,7 @@ func dir2QidType(d os.FileInfo) uint8 {
 	return ret
 }
 
-func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
+func dir2Npmode(d os.FileInfo) uint32 {
 	ret := uint32(d.Mode() & 0777)
 	if d.IsDir() {
 		ret |= warp9.DMDIR
@@ -124,7 +136,7 @@ type ufsDir struct {
 	warp9.Dir
 }
 
-func dir2Dir(path string, d os.FileInfo, dotu bool, upool warp9.Users) (*warp9.Dir, error) {
+func dir2Dir(path string, d os.FileInfo, upool warp9.Users) (*warp9.Dir, error) {
 	if r := recover(); r != nil {
 		fmt.Print("stat failed: ", r)
 		return nil, &os.PathError{"dir2Dir", path, nil}
@@ -137,16 +149,11 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool warp9.Users) (*warp9.D
 
 	dir := new(ufsDir)
 	dir.Qid = *dir2Qid(d)
-	dir.Mode = dir2Npmode(d, dotu)
+	dir.Mode = dir2Npmode(d)
 	dir.Atime = uint32(0 /*atime(sysMode).Unix()*/)
 	dir.Mtime = uint32(d.ModTime().Unix())
 	dir.Length = uint64(d.Size())
 	dir.Name = path[strings.LastIndex(path, "/")+1:]
-
-	if dotu {
-		dir.dotu(path, d, upool, sysMode)
-		return &dir.Dir, nil
-	}
 
 	unixUid := int(sysMode.Uid)
 	unixGid := int(sysMode.Gid)
@@ -167,6 +174,7 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool warp9.Users) (*warp9.D
 	return &dir.Dir, nil
 }
 
+/*
 func (dir *ufsDir) dotu(path string, d os.FileInfo, upool warp9.Users, sysMode *syscall.Stat_t) {
 	u := upool.Uid2User(int(sysMode.Uid))
 	g := upool.Gid2Group(int(sysMode.Gid))
@@ -195,6 +203,7 @@ func (dir *ufsDir) dotu(path string, d os.FileInfo, upool warp9.Users, sysMode *
 		dir.ExtAttr = fmt.Sprintf("c=%d:%d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
 	}
 }
+*/
 
 func (*Ufs) ConnOpened(conn *warp9.Conn) {
 	if conn.Srv.Debuglevel > 0 {
@@ -223,7 +232,7 @@ func (*Ufs) FidDestroy(sfid *warp9.SrvFid) {
 
 func (ufs *Ufs) Attach(req *warp9.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(warp9.Err(warp9.Enoauth))
+		req.RespondError(warp9.Enoauth)
 		return
 	}
 
@@ -236,7 +245,7 @@ func (ufs *Ufs) Attach(req *warp9.SrvReq) {
 
 	req.Fid.Aux = fid
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -252,7 +261,7 @@ func (*Ufs) Walk(req *warp9.SrvReq) {
 	tc := req.Tc
 
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -270,7 +279,7 @@ func (*Ufs) Walk(req *warp9.SrvReq) {
 		st, err := os.Lstat(p)
 		if err != nil {
 			if i == 0 {
-				req.RespondError(warp9.Err(warp9.Enotexist))
+				req.RespondError(warp9.Enotexist)
 				return
 			}
 
@@ -289,7 +298,7 @@ func (*Ufs) Open(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -297,7 +306,7 @@ func (*Ufs) Open(req *warp9.SrvReq) {
 	var e error
 	fid.file, e = os.OpenFile(fid.path, omode2uflags(tc.Mode), 0)
 	if e != nil {
-		req.RespondError(toError(e))
+		req.RespondError(EUFSopen)
 		return
 	}
 
@@ -308,7 +317,7 @@ func (*Ufs) Create(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -330,14 +339,14 @@ func (*Ufs) Create(req *warp9.SrvReq) {
 	}
 
 	if e != nil {
-		req.RespondError(toError(e))
+		req.RespondError(EUFSopen)
 		return
 	}
 
 	fid.path = path
 	fid.file = file
 	err = fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -350,7 +359,7 @@ func (*Ufs) Read(req *warp9.SrvReq) {
 	tc := req.Tc
 	rc := req.Rc
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -365,12 +374,12 @@ func (*Ufs) Read(req *warp9.SrvReq) {
 			// in most cases, just close and reopen it.
 			fid.file.Close()
 			if fid.file, e = os.OpenFile(fid.path, omode2uflags(req.Fid.Omode), 0); e != nil {
-				req.RespondError(toError(e))
+				req.RespondError(EUFSopen)
 				return
 			}
 
 			if fid.dirs, e = fid.file.Readdir(-1); e != nil {
-				req.RespondError(toError(e))
+				req.RespondError(EUFSread)
 				return
 			}
 
@@ -378,11 +387,11 @@ func (*Ufs) Read(req *warp9.SrvReq) {
 			fid.direntends = nil
 			for i := 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
-				st, _ := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				st, _ := dir2Dir(path, fid.dirs[i], req.Conn.Srv.Upool)
 				if st == nil {
 					continue
 				}
-				b := warp9.PackDir(st, req.Conn.Dotu)
+				b := warp9.PackDir(st)
 				fid.dirents = append(fid.dirents, b...)
 				count += len(b)
 				fid.direntends = append(fid.direntends, count)
@@ -403,7 +412,7 @@ func (*Ufs) Read(req *warp9.SrvReq) {
 	} else {
 		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset))
 		if e != nil && e != io.EOF {
-			req.RespondError(toError(e))
+			req.RespondError(EUFSread)
 			return
 		}
 
@@ -417,14 +426,14 @@ func (*Ufs) Write(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	tc := req.Tc
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
 
 	n, e := fid.file.WriteAt(tc.Data, int64(tc.Offset))
 	if e != nil {
-		req.RespondError(toError(e))
+		req.RespondError(EUFSwrite)
 		return
 	}
 
@@ -436,14 +445,14 @@ func (*Ufs) Clunk(req *warp9.SrvReq) { req.RespondRclunk() }
 func (*Ufs) Remove(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
 
 	e := os.Remove(fid.path)
 	if e != nil {
-		req.RespondError(toError(e))
+		req.RespondError(EUFSremove)
 		return
 	}
 
@@ -453,27 +462,27 @@ func (*Ufs) Remove(req *warp9.SrvReq) {
 func (*Ufs) Stat(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
 
-	st, derr := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool)
+	st, _ := dir2Dir(fid.path, fid.st, req.Conn.Srv.Upool)
 	if st == nil {
-		req.RespondError(derr)
+		req.RespondError(EUFSstat)
 		return
 	}
 
 	req.RespondRstat(st)
 }
 
-func lookup(uid string, group bool) (uint32, *warp9.Error) {
+func lookup(uid string, group bool) (uint32, warp9.W9Err) {
 	if uid == "" {
-		return warp9.NOUID, nil
+		return warp9.NOUID, warp9.Egood
 	}
 	usr, e := user.Lookup(uid)
 	if e != nil {
-		return warp9.NOUID, toError(e)
+		return warp9.NOUID, warp9.Ebaduser
 	}
 	conv := usr.Uid
 	if group {
@@ -481,15 +490,15 @@ func lookup(uid string, group bool) (uint32, *warp9.Error) {
 	}
 	u, e := strconv.Atoi(conv)
 	if e != nil {
-		return warp9.NOUID, toError(e)
+		return warp9.NOUID, warp9.Ebaduser
 	}
-	return uint32(u), nil
+	return uint32(u), warp9.Egood
 }
 
 func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	fid := req.Fid.Aux.(*ufsFid)
 	err := fid.stat()
-	if err != nil {
+	if err != 0 {
 		req.RespondError(err)
 		return
 	}
@@ -499,7 +508,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 		mode := dir.Mode & 0777
 		e := os.Chmod(fid.path, os.FileMode(mode))
 		if e != nil {
-			req.RespondError(toError(e))
+			req.RespondError(EUFSchmod)
 			return
 		}
 	}
@@ -507,9 +516,9 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	uid, gid := warp9.NOUID, warp9.NOUID
 
 	// Try to find local uid, gid by name.
-	if (dir.Uid != "" || dir.Gid != "") && !req.Conn.Dotu {
+	if dir.Uid != "" || dir.Gid != "" {
 		uid, err = lookup(dir.Uid, false)
-		if err != nil {
+		if err != warp9.Egood {
 			req.RespondError(err)
 			return
 		}
@@ -518,7 +527,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 		// corresponding to group names, because
 		// it only operates on user names.
 		gid, err = lookup(dir.Gid, true)
-		if err != nil {
+		if err != warp9.Egood {
 			req.RespondError(err)
 			return
 		}
@@ -527,7 +536,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	if uid != warp9.NOUID || gid != warp9.NOUID {
 		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
-			req.RespondError(toError(e))
+			req.RespondError(EUFSchown)
 			return
 		}
 	}
@@ -548,7 +557,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 		err := syscall.Rename(fid.path, destpath)
 		fmt.Printf("rename %s to %s gets %v\n", fid.path, destpath, err)
 		if err != nil {
-			req.RespondError(toError(err))
+			req.RespondError(EUFSrename)
 			return
 		}
 		fid.path = destpath
@@ -557,7 +566,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 	if dir.Length != 0xFFFFFFFFFFFFFFFF {
 		e := os.Truncate(fid.path, int64(dir.Length))
 		if e != nil {
-			req.RespondError(toError(e))
+			req.RespondError(EUFStruncate)
 			return
 		}
 	}
@@ -569,7 +578,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 		if cmt, cat := (dir.Mtime == ^uint32(0)), (dir.Atime == ^uint32(0)); cmt || cat {
 			st, e := os.Stat(fid.path)
 			if e != nil {
-				req.RespondError(toError(e))
+				req.RespondError(EUFSstat)
 				return
 			}
 			switch cmt {
@@ -581,7 +590,7 @@ func (u *Ufs) Wstat(req *warp9.SrvReq) {
 		}
 		e := os.Chtimes(fid.path, at, mt)
 		if e != nil {
-			req.RespondError(toError(e))
+			req.RespondError(EUFSstat)
 			return
 		}
 	}

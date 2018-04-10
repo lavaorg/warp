@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -60,11 +59,12 @@ func listenForServers(ntype, addr string) {
 // mount the server that just called on the Conn
 func handleConnection(c net.Conn) {
 
-	uid := warp9.OsUsers.Uid2User(os.Geteuid())
 	warp9.DefaultDebuglevel = *dbglev
+	uid := uint32(0xFFFFFFFF & os.Getuid())
+	user := warp9.Identity.User(uid)
 
-	c9, err := warp9.MountConn(c, *aname, 500, uid)
-	if err != nil {
+	c9, err := warp9.MountConn(c, *aname, 500, user)
+	if err != warp9.Egood {
 		mlog.Error("Error:%v\n", err)
 		c.Close()
 		return // end thread
@@ -83,7 +83,7 @@ func handleConnection(c net.Conn) {
 
 func readSensor0(c9 *warp9.Clnt) {
 	f, err := c9.FOpen("sensors", warp9.OREAD)
-	if err != nil {
+	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
 	defer f.Close()
@@ -94,16 +94,16 @@ func readSensor0(c9 *warp9.Clnt) {
 		if n == 0 {
 			break
 		}
-		if err != nil {
+		if err != warp9.Egood {
 			log.Fatalf("Error reading:%v\n", err)
 		}
 		mlog.Info("%v", string(buf))
-		if err == io.EOF {
+		if err == warp9.Eeof {
 			break
 		}
 	}
 
-	if err != nil && err != io.EOF {
+	if err != warp9.Egood && err != warp9.Eeof {
 		mlog.Error("error:%v", err)
 		return
 	}
@@ -116,19 +116,19 @@ func readSensor0(c9 *warp9.Clnt) {
 func readSensor(c9 *warp9.Clnt) {
 
 	fid, err := c9.FWalk("sensors")
-	if err != nil {
+	if err != warp9.Egood {
 		mlog.Error("could not Walk:%v", err)
 		return
 	}
 	defer c9.Clunk(fid)
 	err = c9.Open(fid, warp9.OREAD)
-	if err != nil {
+	if err != warp9.Egood {
 		mlog.Error("open failed:%v", err)
 		return
 	}
 
 	buf, err := c9.Read(fid, uint64(0), uint32(100))
-	if err != nil {
+	if err != warp9.Egood {
 		mlog.Error("Error:%v\n", err)
 	} else {
 		mlog.Info("%v", string(buf))
@@ -145,19 +145,19 @@ func reconfigSensor(c9 *warp9.Clnt) {
 	if reportCount > 2 {
 		reportCount = 0
 		fid, err := c9.FWalk("ctl")
-		if err != nil {
+		if err != warp9.Egood {
 			mlog.Error("could not Walk:%v", err)
 			return
 		}
 		defer c9.Clunk(fid)
 		err = c9.Open(fid, warp9.OWRITE)
-		if err != nil {
+		if err != warp9.Egood {
 			mlog.Error("open failed:%v", err)
 			return
 		}
 		data := []byte("ip:" + *alt)
 		cnt, err := c9.Write(fid, data, 0)
-		if err != nil {
+		if err != warp9.Egood {
 			mlog.Error("Error:%v\n", err)
 		} else {
 			mlog.Info("ctl: ip:%v [%d]", alt, cnt)
