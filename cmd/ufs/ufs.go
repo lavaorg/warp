@@ -22,7 +22,6 @@ func main() {
 	ufs := new(ufs.Ufs)
 	showInterfaces(ufs)
 
-	ufs.Dotu = true
 	ufs.Id = "ufs"
 	ufs.Root = *root
 	ufs.Debuglevel = *debug

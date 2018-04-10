@@ -21,7 +21,6 @@ func main() {
 	nullfs := new(nullfs.Nullfs)
 	showInterfaces(nullfs)
 
-	nullfs.Dotu = true
 	nullfs.Id = "nullfs"
 	nullfs.Debuglevel = *debug
 	nullfs.Start(nullfs)

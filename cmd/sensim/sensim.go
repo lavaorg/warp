@@ -1,6 +1,5 @@
-// Copyright 2009 The ninep Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright 2018 Larry Rau. All rights reserved
+// See Apache2 LICENSE
 
 package main
 
@@ -35,7 +34,6 @@ func main() {
 	flag.Parse()
 	sensrv := new(sensim.SenSrv)
 
-	sensrv.Dotu = false
 	sensrv.Id = "sensrv"
 	sensrv.Debuglevel = *debug
 	sensrv.Start(sensrv)
@@ -53,6 +51,8 @@ func main() {
 
 }
 
+// simulate 'count' (configurable) number of independent sensors
+// make a thread for each sensor; wait for them all to complete
 func runSensors(sensrv *sensim.SenSrv, count, life, sleep int) {
 
 	var wg sync.WaitGroup
@@ -65,6 +65,10 @@ func runSensors(sensrv *sensim.SenSrv, count, life, sleep int) {
 
 }
 
+// initiate a connection and then serve our object server on that connection
+// e.g. we will be expecting the server contacted to be a client of our object tree
+// we will then sleep for a configured period and repeast the process
+// we repeast this process for a configured life; then thread ends
 func sensorMain(s sensor) {
 
 	defer s.wg.Done()
