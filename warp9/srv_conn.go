@@ -14,9 +14,8 @@ import (
 // The Conn type represents a connection from a client to the object server
 type Conn struct {
 	sync.Mutex
-	Srv   *Srv
-	Msize uint32 // maximum size of Warp9 messages for the connection
-	//Dotu       bool   // if true, both the client and the server speak Warp9.u
+	Srv        *Srv
+	Msize      uint32 // maximum size of Warp9 messages for the connection
 	Id         string // used for debugging and stats
 	Debuglevel int
 
@@ -28,7 +27,7 @@ type Conn struct {
 	rchan  chan *Fcall
 	done   chan bool
 
-	// stats
+	// stats -- only for logging and debugging
 	nreqs   int    // number of requests processed by the server
 	tsz     uint64 // total size of the T messages received
 	rsz     uint64 // total size of the R messages sent
