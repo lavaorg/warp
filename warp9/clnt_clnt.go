@@ -23,7 +23,6 @@ type Clnt struct {
 	Msize      uint32 // Maximum size of the 9P messages
 	Root       *Fid   // Fid that points to the rood directory
 	Id         string // Used when printing debug messages
-	Log        *Logger
 
 	conn     net.Conn
 	tagpool  *pool
@@ -80,7 +79,6 @@ type ClntList struct {
 
 var clnts *ClntList
 var DefaultDebuglevel int
-var DefaultLogger *Logger
 
 func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 	var tag uint16
@@ -313,7 +311,6 @@ func NewClnt(c net.Conn, msize uint32) *Clnt {
 	clnt.conn = c
 	clnt.Msize = msize
 	clnt.Debuglevel = DefaultDebuglevel
-	clnt.Log = DefaultLogger
 	clnt.Id = c.RemoteAddr().String() + ":"
 	clnt.tagpool = newPool(uint32(NOTAG))
 	clnt.fidpool = newPool(NOFID)
@@ -428,16 +425,11 @@ func (clnt *Clnt) ReqFree(req *Req) {
 
 func (clnt *Clnt) logFcall(fc *Fcall) {
 	if clnt.Debuglevel&DbgLogPackets != 0 {
-		pkt := make([]byte, len(fc.Pkt))
-		copy(pkt, fc.Pkt)
-		clnt.Log.Log(pkt, clnt, DbgLogPackets)
+
 	}
 
 	if clnt.Debuglevel&DbgLogFcalls != 0 {
-		f := new(Fcall)
-		*f = *fc
-		f.Pkt = nil
-		clnt.Log.Log(f, clnt, DbgLogFcalls)
+
 	}
 }
 

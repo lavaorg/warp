@@ -107,7 +107,6 @@ type Srv struct {
 	Debuglevel int    // debug level
 	Upool      Users  // Interface for finding users and groups known to the object server
 	Maxpend    int    // Maximum pending outgoing requests
-	Log        *Logger
 
 	ops   interface{}     // operations
 	conns map[*Conn]*Conn // List of connections
@@ -174,9 +173,6 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Msize = MSIZE
 	}
 
-	if srv.Log == nil {
-		srv.Log = NewLogger(1024)
-	}
 	fmt.Println("check for StatsOps")
 	if sop, ok := (interface{}(srv)).(StatsOps); ok {
 		fmt.Println("start stats")

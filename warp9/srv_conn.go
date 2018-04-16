@@ -267,16 +267,11 @@ func (conn *Conn) LocalAddr() net.Addr {
 
 func (conn *Conn) logFcall(fc *Fcall) {
 	if conn.Debuglevel&DbgLogPackets != 0 {
-		pkt := make([]byte, len(fc.Pkt))
-		copy(pkt, fc.Pkt)
-		conn.Srv.Log.Log(pkt, conn, DbgLogPackets)
+
 	}
 
 	if conn.Debuglevel&DbgLogFcalls != 0 {
-		f := new(Fcall)
-		*f = *fc
-		f.Pkt = nil
-		conn.Srv.Log.Log(f, conn, DbgLogFcalls)
+
 	}
 }
 

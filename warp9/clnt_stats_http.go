@@ -14,14 +14,7 @@ func (clnt *Clnt) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 
 	// fcalls
 	if clnt.Debuglevel&DbgLogFcalls != 0 {
-		fs := clnt.Log.Filter(clnt, DbgLogFcalls)
-		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
-		for _, l := range fs {
-			fc := l.Data.(*Fcall)
-			if fc.Type != 0 {
-				io.WriteString(c, fmt.Sprintf("<br>%s", fc))
-			}
-		}
+
 	}
 }
 
