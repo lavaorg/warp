@@ -1,19 +1,13 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// license that can be found in the LICENSE object.
 
-// The ninep package provides the definitions and functions used to implement
-// the 9P2000 protocol.
+// The definitions and functions used to implement the Warp9 protocol
 // TODO.
 // All the packet conversion code in this file is crap and needs a rewrite.
 package warp9
 
-import (
-	"errors"
-	"fmt"
-)
-
-// 9P2000 message types
+// Warp9 message types
 const (
 	Tversion = 100 + iota
 	Rversion
@@ -43,23 +37,31 @@ const (
 	Rstat
 	Twstat
 	Rwstat
+	Tget
+	Rget
+	Tput
+	Rput
+	Treport
+	Rreport
+	Tstream
+	Rstream
 	Tlast
 )
 
 const (
 	MSIZE   = 1048576 + IOHDRSZ // default message size (1048576+IOHdrSz)
 	IOHDRSZ = 24                // the non-data size of the Twrite messages
-	PORT    = 564               // default port for 9P file servers
+	PORT    = 564               // default port for Warp9 object servers
 )
 
 // Qid types
 const (
 	QTDIR    = 0x80 // directories
-	QTAPPEND = 0x40 // append only files
-	QTEXCL   = 0x20 // exclusive use files
+	QTAPPEND = 0x40 // append only objects
+	QTEXCL   = 0x20 // exclusive use objects
 	QTMOUNT  = 0x10 // mounted channel
-	QTAUTH   = 0x08 // authentication file
-	QTTMP    = 0x04 // non-backed-up file
+	QTAUTH   = 0x08 // authentication object
+	QTTMP    = 0x04 // non-backed-up object
 	QTFILE   = 0x00
 )
 
@@ -69,19 +71,19 @@ const (
 	OWRITE  = 1  // open write-only
 	ORDWR   = 2  // open read-write
 	OUSE    = 3  // USE; directories can be used for walk without Read perm
-	OTRUNC  = 16 // or'ed in truncate file first
+	OTRUNC  = 16 // or'ed in truncate object first
 	ORCLOSE = 64 // or'ed in, remove on close
 )
 
 // File modes
 const (
-	// file types -- high order 8bits
+	// object types -- high order 8bits
 	DMMASK   = 0xFF000000 // masks for top 8bits
 	DMDIR    = 0x80000000 // mode bit for directories
 	DMAPPEND = 0x40000000 // mode bit for append only objects, offset ignored in write
 	DMEXCL   = 0x20000000 // mode bit for exclusive use objects; one client open at a time
-	DMAUTH   = 0x08000000 // mode bit for authentication file
-	DMTMP    = 0x04000000 // mode bit for non-backed-up file
+	DMAUTH   = 0x08000000 // mode bit for authentication object
+	DMTMP    = 0x04000000 // mode bit for non-backed-up object
 
 	// permissions
 	DMREAD  = 0x4 // mode bit for read permission
@@ -93,97 +95,59 @@ const (
 	NOTAG uint16 = 0xFFFF     // no tag specified
 	NOFID uint32 = 0xFFFFFFFF // no fid specified
 	NOUID uint32 = 0xFFFFFFFF // no uid specified
+	NOTOK uint32 = 0xFFFFFFFF // no auth token
 )
-
-// Error values
-const (
-	EGOOD   = 0
-	EPERM   = -1
-	ENOENT  = -2
-	EIO     = -3
-	EEXIST  = -4
-	ENOTDIR = -5
-	EINVAL  = -6
-)
-
-// Error represents a 9P2000 (and 9P2000.u) error
-type Error struct {
-	Err      string // textual representation of the error
-	Errornum int16  // numeric representation of the error (9P2000.u)
-}
-
-func Err(s string) error {
-	return errors.New(s)
-}
 
 // File identifier
 type Qid struct {
-	Type    uint8  // type of the file (high 8 bits of the mode)
+	Type    uint8  // type of the object (high 8 bits of the mode)
 	Version uint32 // version number for the path
-	Path    uint64 // server's unique identification of the file
+	Path    uint64 // server's unique identification of the object
 }
 
-// Dir describes a file
+// Dir describes a directory object
 type Dir struct {
 	DirSize uint16 // size-2 of the Dir on the wire
-	Type    uint16
-	Dev     uint32
-	Qid            // file's Qid
+	//Type    uint16
+	//Dev     uint32
+	Qid            // object's Qid
 	Mode    uint32 // permissions and flags
 	Atime   uint32 // last access time in seconds
 	Mtime   uint32 // last modified time in seconds
-	Length  uint64 // file length in bytes
-	Name    string // file name
-	Uid     string // owner id
-	Gid     string // group id
-	Muid    string // id of the last user that modified the file
+	Length  uint64 // object length in bytes
+	Name    string // object name
+	Uid     uint32 // owner id
+	Gid     uint32 // group id
+	Muid    uint32 // id of the last user that modified the object
 	ExtAttr string // extended attributes
 }
 
-// Interface for accessing users and groups
-type Users interface {
-	Uid2User(uid int) User
-	Uname2User(uname string) User
-	Gid2Group(gid int) Group
-	Gname2Group(gname string) Group
-}
+// fixed msg preample of 7 bytes: msgsize[4] msg-type[1] tag[2]
+const (
+	fixedFcsz = 7
+)
 
-// Represents a user
-type User interface {
-	Name() string          // user name
-	Id() int               // user id
-	Groups() []Group       // groups the user belongs to (can return nil)
-	IsMember(g Group) bool // returns true if the user is member of the specified group
-}
-
-// Represents a group of users
-type Group interface {
-	Name() string    // group name
-	Id() int         // group id
-	Members() []User // list of members that belong to the group (can return nil)
-}
-
-// minimum size of a 9P2000 message for a type
+// minimum size of a Warp9 message for a type; not couting fixed preamble
 var minFcsize = [...]uint32{
 	6,  /* Tversion msize[4] version[s] */
 	6,  /* Rversion msize[4] version[s] */
-	8,  /* Tauth fid[4] uname[s] aname[s] */
+	10, /* Tauth fid[4] uid[4] aname[s] */
 	13, /* Rauth aqid[13] */
-	12, /* Tattach fid[4] afid[4] uname[s] aname[s] */
+	14, /* Tattach fid[4] atok[4] uid[4] aname[s] */
 	13, /* Rattach qid[13] */
 	0,  /* Terror */
-	2,  /* Rerror ename[s] (ecode[4]) */
+	2,  /* Rerror errcode[2] */
 	2,  /* Tflush oldtag[2] */
 	0,  /* Rflush */
-	10, /* Twalk fid[4] newfid[4] nwname[2] */
-	2,  /* Rwalk nwqid[2] */
+	10, /* Twalk fid[4] newfid[4] nwname[2]... */
+	2,  /* Rwalk nwqid[2]... */
 	5,  /* Topen fid[4] mode[1] */
 	17, /* Ropen qid[13] iounit[4] */
 	11, /* Tcreate fid[4] name[s] perm[4] mode[1] */
 	17, /* Rcreate qid[13] iounit[4] */
 	16, /* Tread fid[4] offset[8] count[4] */
-	4,  /* Rread count[4] */
-	16, /* Twrite fid[4] offset[8] count[4] */
+	4,  /* Rread count[4]... */
+	16, /* Twrite fid[4] offset[8] count[4]... */
 	4,  /* Rwrite count[4] */
 	4,  /* Tclunk fid[4] */
 	0,  /* Rclunk */
@@ -193,49 +157,14 @@ var minFcsize = [...]uint32{
 	4,  /* Rstat stat[n] */
 	8,  /* Twstat fid[4] stat[n] */
 	0,  /* Rwstat */
-	20, /* Tbread fileid[8] offset[8] count[4] */
-	4,  /* Rbread count[4] */
-	20, /* Tbwrite fileid[8] offset[8] count[4] */
-	4,  /* Rbwrite count[4] */
-	16, /* Tbtrunc fileid[8] offset[8] */
-	0,  /* Rbtrunc */
-}
-
-// minimum size of a 9P2000.u message for a type
-var minFcusize = [...]uint32{
-	6,  /* Tversion msize[4] version[s] */
-	6,  /* Rversion msize[4] version[s] */
-	12, /* Tauth fid[4] uname[s] aname[s] */
-	13, /* Rauth aqid[13] */
-	16, /* Tattach fid[4] afid[4] uname[s] aname[s] */
-	13, /* Rattach qid[13] */
-	0,  /* Terror */
-	6,  /* Rerror ename[s] (ecode[4]) */
-	2,  /* Tflush oldtag[2] */
-	0,  /* Rflush */
-	10, /* Twalk fid[4] newfid[4] nwname[2] */
-	2,  /* Rwalk nwqid[2] */
-	5,  /* Topen fid[4] mode[1] */
-	17, /* Ropen qid[13] iounit[4] */
-	13, /* Tcreate fid[4] name[s] perm[4] mode[1] */
-	17, /* Rcreate qid[13] iounit[4] */
-	16, /* Tread fid[4] offset[8] count[4] */
-	4,  /* Rread count[4] */
-	16, /* Twrite fid[4] offset[8] count[4] */
-	4,  /* Rwrite count[4] */
-	4,  /* Tclunk fid[4] */
-	0,  /* Rclunk */
-	4,  /* Tremove fid[4] */
-	0,  /* Rremove */
-	4,  /* Tstat fid[4] */
-	4,  /* Rstat stat[n] */
-	8,  /* Twstat fid[4] stat[n] */
-	20, /* Tbread fileid[8] offset[8] count[4] */
-	4,  /* Rbread count[4] */
-	20, /* Tbwrite fileid[8] offset[8] count[4] */
-	4,  /* Rbwrite count[4] */
-	16, /* Tbtrunc fileid[8] offset[8] */
-	0,  /* Rbtrunc */
+	0,  /* Tget */
+	0,  /* Rget */
+	0,  /* Tput */
+	0,  /* Rput */
+	10, /* Treport atok[4] uid[4] aname[s] */
+	2,  /* Rreport count[2]...*/
+	13, /* Tstream fid[4] istream[1] offset[8] */
+	4,  /* Rstream count[4]... */
 }
 
 func gint8(buf []byte) (uint8, []byte) { return buf[0], buf[1:] }
@@ -250,13 +179,21 @@ func gint32(buf []byte) (uint32, []byte) {
 		buf[4:]
 }
 
-func Gint32(buf []byte) (uint32, []byte) { return gint32(buf) }
+// signed-int32
+func gsint32(buf []byte) (int32, []byte) {
+	u32 := uint32(buf[0]) | (uint32(buf[1]) << 8) | (uint32(buf[2]) << 16) | (uint32(buf[3]) << 24)
+	return int32(u32), buf[4:]
+}
 
 func gint64(buf []byte) (uint64, []byte) {
 	return uint64(buf[0]) | (uint64(buf[1]) << 8) | (uint64(buf[2]) << 16) |
 			(uint64(buf[3]) << 24) | (uint64(buf[4]) << 32) | (uint64(buf[5]) << 40) |
 			(uint64(buf[6]) << 48) | (uint64(buf[7]) << 56),
 		buf[8:]
+}
+
+func gerr(buf []byte) (W9Err, []byte) {
+	return W9Err(uint16(buf[0]) | (uint16(buf[1]) << 8)), buf[2:]
 }
 
 func gstr(buf []byte) (string, []byte) {
@@ -283,11 +220,8 @@ func gqid(buf []byte, qid *Qid) []byte {
 	return buf
 }
 
-func gstat(buf []byte, d *Dir, dotu bool) ([]byte, error) {
-	sz := len(buf)
+func gstat(buf []byte, d *Dir) ([]byte, W9Err) {
 	d.DirSize, buf = gint16(buf)
-	d.Type, buf = gint16(buf)
-	d.Dev, buf = gint32(buf)
 	buf = gqid(buf, &d.Qid)
 	d.Mode, buf = gint32(buf)
 	d.Atime, buf = gint32(buf)
@@ -295,25 +229,25 @@ func gstat(buf []byte, d *Dir, dotu bool) ([]byte, error) {
 	d.Length, buf = gint64(buf)
 	d.Name, buf = gstr(buf)
 	if buf == nil {
-		s := fmt.Sprintf("Buffer too short for basic 9p: need %d, have %d", 49, sz)
-		return nil, &Error{s, EINVAL}
+		//s := fmt.Sprintf("Buffer too short for basic 9p: need %d, have %d", 49, sz)
+		return nil, Ebufsz
 	}
 
-	d.Uid, buf = gstr(buf)
+	d.Uid, buf = gint32(buf)
 	if buf == nil {
-		return nil, &Error{"d.Uid failed", EINVAL}
+		return nil, Ebaduid
 	}
-	d.Gid, buf = gstr(buf)
+	d.Gid, buf = gint32(buf)
 	if buf == nil {
-		return nil, &Error{"d.Gid failed", EINVAL}
-	}
-
-	d.Muid, buf = gstr(buf)
-	if buf == nil {
-		return nil, &Error{"d.Muid failed", EINVAL}
+		return nil, Ebaduid
 	}
 
-	return buf, nil
+	d.Muid, buf = gint32(buf)
+	if buf == nil {
+		return nil, Ebaduid
+	}
+
+	return buf, Egood
 }
 
 func pint8(val uint8, buf []byte) []byte {
@@ -335,6 +269,14 @@ func pint32(val uint32, buf []byte) []byte {
 	return buf[4:]
 }
 
+func psint32(val int32, buf []byte) []byte {
+	buf[0] = uint8(val)
+	buf[1] = uint8(val >> 8)
+	buf[2] = uint8(val >> 16)
+	buf[3] = uint8(val >> 24)
+	return buf[4:]
+}
+
 func pint64(val uint64, buf []byte) []byte {
 	buf[0] = uint8(val)
 	buf[1] = uint8(val >> 8)
@@ -345,6 +287,12 @@ func pint64(val uint64, buf []byte) []byte {
 	buf[6] = uint8(val >> 48)
 	buf[7] = uint8(val >> 56)
 	return buf[8:]
+}
+
+func perr(val W9Err, buf []byte) []byte {
+	buf[0] = uint8(val)
+	buf[1] = uint8(val >> 8)
+	return buf[2:]
 }
 
 func pstr(val string, buf []byte) []byte {
@@ -363,68 +311,54 @@ func pqid(val *Qid, buf []byte) []byte {
 	return buf
 }
 
-func statsz(d *Dir, dotu bool) int {
-	sz := 2 + 2 + 4 + 13 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 + len(d.Name) + len(d.Uid) + len(d.Gid) + len(d.Muid)
+func statsz(d *Dir) int {
+	//sz := 2 + 2 + 4 + 13 + 4 + 4 + 4 + 8 + 2 + len(d.Name) + 4 + 4 + 4
+	sz := 2 + 13 + 4 + 4 + 4 + 8 + 2 + len(d.Name) + 4 + 4 + 4
 	return sz
 }
 
-func pstat(d *Dir, buf []byte, dotu bool) []byte {
-	sz := statsz(d, dotu)
+func pstat(d *Dir, buf []byte) []byte {
+	sz := statsz(d)
 	buf = pint16(uint16(sz-2), buf)
-	buf = pint16(d.Type, buf)
-	buf = pint32(d.Dev, buf)
 	buf = pqid(&d.Qid, buf)
 	buf = pint32(d.Mode, buf)
 	buf = pint32(d.Atime, buf)
 	buf = pint32(d.Mtime, buf)
 	buf = pint64(d.Length, buf)
 	buf = pstr(d.Name, buf)
-	buf = pstr(d.Uid, buf)
-	buf = pstr(d.Gid, buf)
-	buf = pstr(d.Muid, buf)
+	buf = pint32(d.Uid, buf)
+	buf = pint32(d.Gid, buf)
+	buf = pint32(d.Muid, buf)
 	return buf
 }
 
 // Converts a Dir value to its on-the-wire representation and writes it to
 // the buf. Returns the number of bytes written, 0 if there is not enough space.
-func PackDir(d *Dir, dotu bool) []byte {
-	sz := statsz(d, dotu)
+func PackDir(d *Dir) []byte {
+	sz := statsz(d)
 	buf := make([]byte, sz)
-	pstat(d, buf, dotu)
+	pstat(d, buf)
 	return buf
 }
 
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackDir(buf []byte, dotu bool) (d *Dir, b []byte, amt int, err error) {
+func UnpackDir(buf []byte) (d *Dir, b []byte, amt int, err W9Err) {
 	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
 
-	if dotu {
-		sz += 2 + 4 + 4 + 4 /* extension[s] n_uid[4] n_gid[4] n_muid[4] */
-	}
-
 	if len(buf) < sz {
-		s := fmt.Sprintf("short buffer: Need %d and have %v", sz, len(buf))
-		return nil, nil, 0, &Error{s, EINVAL}
+		//log:?? fmt.Sprintf("short buffer: Need %d and have %v", sz, len(buf))
+		return nil, nil, 0, Einval
 	}
-
 	d = new(Dir)
-	b, err = gstat(buf, d, dotu)
-	if err != nil {
+	b, err = gstat(buf, d)
+	if err != Egood {
 		return nil, nil, 0, err
 	}
 
-	return d, b, len(buf) - len(b), nil
+	return d, b, len(buf) - len(b), Egood
 
-}
-
-func (err *Error) Error() string {
-	if err != nil {
-		return err.Err
-	}
-
-	return ""
 }

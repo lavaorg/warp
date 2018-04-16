@@ -5,12 +5,12 @@
 package warp9
 
 // Clunks a fid. Returns nil if successful.
-func (clnt *Clnt) Clunk(fid *Fid) (err error) {
-	err = nil
+func (clnt *Clnt) Clunk(fid *Fid) (err W9Err) {
+	err = Egood
 	if fid.walked {
 		tc := clnt.NewFcall()
 		err := tc.packTclunk(fid.Fid)
-		if err != nil {
+		if err != Egood {
 			return err
 		}
 
@@ -24,7 +24,7 @@ func (clnt *Clnt) Clunk(fid *Fid) (err error) {
 }
 
 // Closes a file. Returns nil if successful.
-func (file *File) Close() error {
+func (file *File) Close() W9Err {
 	// Should we cancel all pending requests for the File
 	return file.Fid.Clnt.Clunk(file.Fid)
 }

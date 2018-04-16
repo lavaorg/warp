@@ -8,14 +8,45 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
+
+// The Conn type represents a connection from a client to the object server
+type Conn struct {
+	sync.Mutex
+	Srv   *Srv
+	Msize uint32 // maximum size of Warp9 messages for the connection
+	//Dotu       bool   // if true, both the client and the server speak Warp9.u
+	Id         string // used for debugging and stats
+	Debuglevel int
+
+	conn    net.Conn
+	fidpool map[uint32]*SrvFid
+	reqs    map[uint16]*SrvReq // all outstanding requests
+
+	reqout chan *SrvReq
+	rchan  chan *Fcall
+	done   chan bool
+
+	// stats
+	nreqs   int    // number of requests processed by the server
+	tsz     uint64 // total size of the T messages received
+	rsz     uint64 // total size of the R messages sent
+	npend   int    // number of currently pending messages
+	maxpend int    // maximum number of pending messages
+	nreads  int    // number of reads
+	nwrites int    // number of writes
+}
+
+func (conn *Conn) String() string {
+	return conn.Srv.Id + "/" + conn.Id
+}
 
 func (srv *Srv) newConnSetup(c net.Conn) *Conn {
 
 	conn := new(Conn)
 	conn.Srv = srv
 	conn.Msize = srv.Msize
-	conn.Dotu = srv.Dotu
 	conn.Debuglevel = srv.Debuglevel
 	conn.conn = c
 	conn.fidpool = make(map[uint32]*SrvFid)
@@ -98,7 +129,7 @@ func (conn *Conn) recv() {
 
 		pos += n
 		for pos > 4 {
-			sz, _ := Gint32(buf)
+			sz, _ := gint32(buf)
 			if sz > conn.Msize {
 				log.Println("bad client connection: ", conn.conn.RemoteAddr())
 				conn.conn.Close()
@@ -115,8 +146,8 @@ func (conn *Conn) recv() {
 
 				break
 			}
-			fc, err, fcsize := Unpack(buf, conn.Dotu)
-			if err != nil {
+			fc, err, fcsize := Unpack(buf)
+			if err != Egood {
 				log.Println(fmt.Sprintf("invalid packet : %v %v", err, buf))
 				conn.conn.Close()
 				conn.close()
@@ -252,7 +283,7 @@ func (conn *Conn) logFcall(fc *Fcall) {
 func (srv *Srv) StartNetListener(ntype, addr string) error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {
-		return &Error{err.Error(), EIO}
+		return W9Err(Eio)
 	}
 
 	return srv.StartListener(l)
@@ -266,7 +297,7 @@ func (srv *Srv) StartListener(l net.Listener) error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			return &Error{err.Error(), EIO}
+			return W9Err(Eio)
 		}
 
 		srv.NewConn(c)

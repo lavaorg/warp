@@ -3,14 +3,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Fcall is the structure to hold contents for an on-the-wire message to/from a 9p server.
+// Fcall is the structure to hold contents for an on-the-wire message to/from a Warp9 server.
 package warp9
 
-import (
-	"fmt"
-)
-
-// Fcall represents a 9P2000 message
+// Fcall represents a Warp9 message. Not all fields are used in all messages.
 type Fcall struct {
 	FcSize  uint32   // size of the message
 	Type    uint8    // message type
@@ -19,11 +15,11 @@ type Fcall struct {
 	Msize   uint32   // maximum message size (used by Tversion, Rversion)
 	Version string   // protocol version (used by Tversion, Rversion)
 	Oldtag  uint16   // tag of the message to flush (used by Tflush)
-	Error   string   // error (used by Rerror)
+	Error   W9Err    // error (used by Rerror)
 	Qid              // file Qid (used by Rauth, Rattach, Ropen, Rcreate)
 	Iounit  uint32   // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
-	Afid    uint32   // authentication fid (used by Tauth, Tattach)
-	Uname   string   // user name (used by Tauth, Tattach)
+	Atok    uint32   // authentication fid (used by Tauth, Tattach)
+	Uid     uint32   // user uid (used by Tauth, Tattach)
 	Aname   string   // attach name (used by Tauth, Tattach)
 	Perm    uint32   // file permission (mode) (used by Tcreate)
 	Name    string   // file name (used by Tcreate)
@@ -36,11 +32,6 @@ type Fcall struct {
 	Data    []uint8  // data read/to-write (used by Rread, Twrite)
 	Dir              // file description (used by Rstat, Twstat)
 	ExtAttr string   // used by Tcreate
-
-	/* 9P2000.u extensions */
-	//Errornum int16  // error code, 9P2000.u only (used by Rerror)
-	//Ext      string // special file description, 9P2000.u only (used by Tcreate)
-	//Unamenum uint32 // user ID, 9P2000.u only (used by Tauth, Tattach)
 
 	Pkt []uint8 // raw packet data
 	Buf []uint8 // buffer to put the raw data in
@@ -60,10 +51,10 @@ func (fc *Fcall) SetTag(tag uint16) {
 	pint16(tag, fc.Pkt[5:])
 }
 
-func (fc *Fcall) packCommon(size int, id uint8) ([]byte, error) {
-	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
+func (fc *Fcall) packCommon(size int, id uint8) ([]byte, W9Err) {
+	size += fixedFcsz /* size[4] id[1] tag[2] */
 	if len(fc.Buf) < int(size) {
-		return nil, &Error{"buffer too small", EINVAL}
+		return nil, Ebufsz
 	}
 
 	fc.FcSize = uint32(size)
@@ -75,22 +66,22 @@ func (fc *Fcall) packCommon(size int, id uint8) ([]byte, error) {
 	p = pint16(NOTAG, p)
 	fc.Pkt = fc.Buf[0:size]
 
-	return p, nil
+	return p, Egood
 }
 
-// Creates a Fcall value from the on-the-wire representation. If
-// dotu is true, reads 9P2000.u messages. Returns the unpacked message,
+// Creates a Fcall value from the on-the-wire representation.
+// Returns the unpacked message,
 // error and how many bytes from the buffer were used by the message.
-func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
+func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 	var m uint16
 
-	if len(buf) < 7 {
-		return nil, &Error{"buffer too short", EINVAL}, 0
+	if len(buf) < fixedFcsz {
+		return nil, Ebufsz, 0
 	}
 
 	fc = new(Fcall)
 	fc.Fid = NOFID
-	fc.Afid = NOFID
+	fc.Atok = NOTOK
 	fc.Newfid = NOFID
 
 	p := buf
@@ -98,34 +89,30 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	fc.Type, p = gint8(p)
 	fc.Tag, p = gint16(p)
 
-	if int(fc.FcSize) > len(buf) || fc.FcSize < 7 {
+	if int(fc.FcSize) > len(buf) || fc.FcSize < fixedFcsz {
 		return nil,
-			&Error{fmt.Sprintf("buffer too short: %d expected %d", len(buf), fc.FcSize), EINVAL},
+			Ebufsz,
 			0
 	}
 
 	p = p[0 : fc.FcSize-7]
 	fc.Pkt = buf[0:fc.FcSize]
-	fcsz = int(fc.FcSize)
+	fcsz = int(fc.FcSize) //lr this seems to be truncating...
 	if fc.Type < Tversion || fc.Type >= Tlast {
-		return nil, &Error{"invalid id", EINVAL}, 0
+		return nil, Ebadmsgid, 0
 	}
 
 	var sz uint32
-	if dotu {
-		sz = minFcsize[fc.Type-Tversion]
-	} else {
-		sz = minFcusize[fc.Type-Tversion]
-	}
+	sz = minFcsize[fc.Type-Tversion]
 
 	if fc.FcSize < sz {
 		goto szerror
 	}
 
-	err = nil
+	err = Egood
 	switch fc.Type {
 	default:
-		return nil, &Error{"invalid message id", EINVAL}, 0
+		return nil, Ebadmsgid, 0
 
 	case Tversion, Rversion:
 		fc.Msize, p = gint32(p)
@@ -135,8 +122,8 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 		}
 
 	case Tauth:
-		fc.Afid, p = gint32(p)
-		fc.Uname, p = gstr(p)
+		fc.Atok, p = gint32(p)
+		fc.Uid, p = gint32(p)
 		if p == nil {
 			goto szerror
 		}
@@ -154,8 +141,8 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 
 	case Tattach:
 		fc.Fid, p = gint32(p)
-		fc.Afid, p = gint32(p)
-		fc.Uname, p = gstr(p)
+		fc.Atok, p = gint32(p)
+		fc.Uid, p = gint32(p)
 		if p == nil {
 			goto szerror
 		}
@@ -166,7 +153,9 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 		}
 
 	case Rerror:
-		fc.Error, p = gstr(p)
+		var ecode W9Err
+		ecode, p = gerr(p) //gstr(p)
+		fc.Error = ecode
 		if p == nil {
 			goto szerror
 		}
@@ -241,15 +230,15 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 
 	case Rstat:
 		m, p = gint16(p)
-		p, err = gstat(p, &fc.Dir, dotu)
-		if err != nil {
+		p, err = gstat(p, &fc.Dir)
+		if err != Egood {
 			return nil, err, 0
 		}
 
 	case Twstat:
 		fc.Fid, p = gint32(p)
 		m, p = gint16(p)
-		p, _ = gstat(p, &fc.Dir, dotu)
+		p, _ = gstat(p, &fc.Dir)
 
 	case Rflush, Rclunk, Rremove, Rwstat:
 	}
@@ -261,5 +250,5 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	return
 
 szerror:
-	return nil, &Error{"invalid size", EINVAL}, 0
+	return nil, Ebadmsgsz, 0
 }

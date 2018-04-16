@@ -4,66 +4,62 @@
 
 package warp9
 
-import (
-	"io"
-)
-
 // Reads count bytes starting from offset from the file associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
 // Error.
-func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
+func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, W9Err) {
 	if count > fid.Iounit {
 		count = fid.Iounit
 	}
 	tc := clnt.NewFcall()
 	err := tc.packTread(fid.Fid, offset, count)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
-	return rc.Data, nil
+	return rc.Data, Egood
 }
 
 // Reads up to len(buf) bytes from the File. Returns the number
 // of bytes read, or an Error.
-func (file *File) Read(buf []byte) (int, error) {
+func (file *File) Read(buf []byte) (int, W9Err) {
 	n, err := file.ReadAt(buf, int64(file.offset))
-	if err == nil {
+	if err == Egood {
 		file.offset += uint64(n)
 	}
 
-	return n, err
+	return n, Egood
 }
 
 // Reads up to len(buf) bytes from the file starting from offset.
 // Returns the number of bytes read, or an Error.
-func (file *File) ReadAt(buf []byte, offset int64) (int, error) {
+func (file *File) ReadAt(buf []byte, offset int64) (int, W9Err) {
 	b, err := file.Fid.Clnt.Read(file.Fid, uint64(offset), uint32(len(buf)))
-	if err != nil {
+	if err != Egood {
 		return 0, err
 	}
 
 	if len(b) == 0 {
-		return 0, io.EOF
+		return 0, Eeof
 	}
 
 	copy(buf, b)
-	return len(b), nil
+	return len(b), Egood
 }
 
 // Reads exactly len(buf) bytes from the File starting from offset.
 // Returns the number of bytes read (could be less than len(buf) if
 // end-of-file is reached), or an Error.
-func (file *File) Readn(buf []byte, offset uint64) (int, error) {
+func (file *File) Readn(buf []byte, offset uint64) (int, W9Err) {
 	ret := 0
 	for len(buf) > 0 {
 		n, err := file.ReadAt(buf, int64(offset))
-		if err != nil {
+		if err != Egood {
 			return 0, err
 		}
 
@@ -76,14 +72,14 @@ func (file *File) Readn(buf []byte, offset uint64) (int, error) {
 		ret += n
 	}
 
-	return ret, nil
+	return ret, Egood
 }
 
 // Reads the content of the directory associated with the File.
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*Dir, error) {
+func (file *File) Readdir(num int) ([]*Dir, W9Err) {
 	buf := make([]byte, file.Fid.Clnt.Msize-IOHDRSZ)
 	dirs := make([]*Dir, 32)
 	pos := 0
@@ -93,7 +89,7 @@ func (file *File) Readdir(num int) ([]*Dir, error) {
 	}()
 	for {
 		n, err := file.Read(buf)
-		if err != nil && err != io.EOF {
+		if err != Egood && err != Eeof {
 			return nil, err
 		}
 
@@ -102,12 +98,12 @@ func (file *File) Readdir(num int) ([]*Dir, error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			d, _, _, perr := UnpackDir(b, file.Fid.Clnt.Dotu)
-			if perr != nil {
+			d, _, _, perr := UnpackDir(b)
+			if perr != Egood {
 				// If we have unpacked anything, it is almost certainly
 				// a too-short buffer. So return what we got.
 				if pos > 0 {
-					return dirs[0:pos], nil
+					return dirs[0:pos], Egood
 				}
 				return nil, perr
 			}
@@ -127,5 +123,5 @@ func (file *File) Readdir(num int) ([]*Dir, error) {
 		}
 	}
 
-	return dirs[0:pos], nil
+	return dirs[0:pos], Egood
 }

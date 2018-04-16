@@ -14,14 +14,13 @@ import (
 	"sync/atomic"
 )
 
-// The Clnt type represents a 9P2000 client. The client is connected to
-// a 9P2000 file server and its methods can be used to access and manipulate
+// The Clnt type represents a Warp9 client. The client is connected to
+// a Warp9 object server and its methods can be used to access and manipulate
 // the files exported by the server.
 type Clnt struct {
 	sync.Mutex
 	Debuglevel int    // =0 don't print anything, >0 print Fcalls, >1 print raw packets
 	Msize      uint32 // Maximum size of the 9P messages
-	Dotu       bool   // If true, 9P2000.u protocol is spoken
 	Root       *Fid   // Fid that points to the rood directory
 	Id         string // Used when printing debug messages
 	Log        *Logger
@@ -33,7 +32,7 @@ type Clnt struct {
 	done     chan bool
 	reqfirst *Req
 	reqlast  *Req
-	err      error
+	err      W9Err
 
 	reqchan chan *Req
 	tchan   chan *Fcall
@@ -67,7 +66,7 @@ type Req struct {
 	Clnt       *Clnt
 	Tc         *Fcall
 	Rc         *Fcall
-	Err        error
+	Err        W9Err
 	Done       chan *Req
 	tag        uint16
 	prev, next *Req
@@ -83,7 +82,7 @@ var clnts *ClntList
 var DefaultDebuglevel int
 var DefaultLogger *Logger
 
-func (clnt *Clnt) Rpcnb(r *Req) error {
+func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 	var tag uint16
 
 	if r.Tc.Type == Tversion {
@@ -94,7 +93,7 @@ func (clnt *Clnt) Rpcnb(r *Req) error {
 
 	r.Tc.SetTag(tag)
 	clnt.Lock()
-	if clnt.err != nil {
+	if clnt.err != Egood {
 		clnt.Unlock()
 		return clnt.err
 	}
@@ -110,15 +109,15 @@ func (clnt *Clnt) Rpcnb(r *Req) error {
 	clnt.Unlock()
 
 	clnt.reqout <- r
-	return nil
+	return Egood
 }
 
-func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err error) {
+func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err W9Err) {
 	r := clnt.ReqAlloc()
 	r.Tc = tc
 	r.Done = make(chan *Req)
 	err = clnt.Rpcnb(r)
-	if err != nil {
+	if err != Egood {
 		return
 	}
 
@@ -130,10 +129,10 @@ func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err error) {
 }
 
 func (clnt *Clnt) recv() {
-	var err error
+	var err W9Err
 	var buf []byte
 
-	err = nil
+	err = Egood
 	pos := 0
 	for {
 		// Connect can change the client Msize.
@@ -147,7 +146,7 @@ func (clnt *Clnt) recv() {
 
 		n, oerr := clnt.conn.Read(buf[pos:])
 		if oerr != nil || n == 0 {
-			err = &Error{oerr.Error(), EIO}
+			err = Eio
 			clnt.Lock()
 			clnt.err = err
 			clnt.Unlock()
@@ -156,7 +155,7 @@ func (clnt *Clnt) recv() {
 
 		pos += n
 		for pos > 4 {
-			sz, _ := Gint32(buf)
+			sz, _ := gint32(buf)
 			if pos < int(sz) {
 				if len(buf) < int(sz) {
 					b := make([]byte, atomic.LoadUint32(&clnt.Msize)*8)
@@ -168,9 +167,9 @@ func (clnt *Clnt) recv() {
 				break
 			}
 
-			fc, err, fcsize := Unpack(buf, clnt.Dotu)
+			fc, err, fcsize := Unpack(buf)
 			clnt.Lock()
-			if err != nil {
+			if err != Egood {
 				clnt.err = err
 				clnt.conn.Close()
 				clnt.Unlock()
@@ -196,7 +195,7 @@ func (clnt *Clnt) recv() {
 			}
 
 			if r == nil {
-				clnt.err = &Error{"unexpected response", EINVAL}
+				clnt.err = Einval
 				clnt.conn.Close()
 				clnt.Unlock()
 				goto closed
@@ -218,12 +217,12 @@ func (clnt *Clnt) recv() {
 
 			if r.Tc.Type != r.Rc.Type-1 {
 				if r.Rc.Type != Rerror {
-					r.Err = &Error{"invalid response", EINVAL}
+					r.Err = Einval
 					log.Println(fmt.Sprintf("TTT %v", r.Tc))
 					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
-					if r.Err == nil {
-						r.Err = &Error{r.Rc.Error, EINVAL}
+					if r.Err == Egood {
+						r.Err = Einval
 					}
 				}
 			}
@@ -245,7 +244,7 @@ closed:
 	r := clnt.reqfirst
 	clnt.reqfirst = nil
 	clnt.reqlast = nil
-	if err == nil {
+	if err == Egood {
 		err = clnt.err
 	}
 	clnt.Unlock()
@@ -309,11 +308,10 @@ func (clnt *Clnt) send() {
 
 // Creates and initializes a new Clnt object. Doesn't send any data
 // on the wire.
-func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
+func NewClnt(c net.Conn, msize uint32) *Clnt {
 	clnt := new(Clnt)
 	clnt.conn = c
 	clnt.Msize = msize
-	clnt.Dotu = dotu
 	clnt.Debuglevel = DefaultDebuglevel
 	clnt.Log = DefaultLogger
 	clnt.Id = c.RemoteAddr().String() + ":"
@@ -347,22 +345,19 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 // Establishes a new socket connection to the 9P server and creates
 // a client object for it. Negotiates the dialect and msize for the
 // connection. Returns a Clnt object, or Error.
-func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, error) {
-	clnt := NewClnt(c, msize, dotu)
+func Connect(c net.Conn, msize uint32) (*Clnt, W9Err) {
+	clnt := NewClnt(c, msize)
 	ver := "9P2000"
-	if clnt.Dotu {
-		ver = "9P2000.u"
-	}
 
 	clntmsize := atomic.LoadUint32(&clnt.Msize)
 	tc := NewFcall(clntmsize)
 	err := tc.packTversion(clntmsize, ver)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
@@ -370,8 +365,7 @@ func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, error) {
 		atomic.StoreUint32(&clnt.Msize, rc.Msize)
 	}
 
-	clnt.Dotu = rc.Version == "9P2000.u" && clnt.Dotu
-	return clnt, nil
+	return clnt, Egood
 }
 
 // Creates a new Fid object for the client
@@ -419,7 +413,7 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	clnt.FreeFcall(req.Tc)
 	req.Tc = nil
 	req.Rc = nil
-	req.Err = nil
+	req.Err = Egood
 	req.Done = nil
 	req.next = nil
 	req.prev = nil

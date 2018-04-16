@@ -12,26 +12,26 @@ import (
 // sequence and associates the resulting file with newfid. If no wnames
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
-func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]Qid, error) {
+func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]Qid, W9Err) {
 	tc := clnt.NewFcall()
 	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != nil {
+	if err != Egood {
 		return nil, err
 	}
 
 	newfid.walked = true
-	return rc.Wqid, nil
+	return rc.Wqid, Egood
 }
 
 // Walks to a named file. Returns a Fid associated with the file,
 // or an Error.
-func (clnt *Clnt) FWalk(path string) (*Fid, error) {
-	var err error = nil
+func (clnt *Clnt) FWalk(path string) (*Fid, W9Err) {
+	var err W9Err = Egood
 
 	var i, m int
 	for i = 0; i < len(path); i++ {
@@ -66,19 +66,19 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 
 		tc := clnt.NewFcall()
 		err = tc.packTwalk(fid.Fid, newfid.Fid, wnames[0:n])
-		if err != nil {
+		if err != Egood {
 			goto error
 		}
 
 		var rc *Fcall
 		rc, err = clnt.Rpc(tc)
-		if err != nil {
+		if err != Egood {
 			goto error
 		}
 
 		newfid.walked = true
 		if len(rc.Wqid) != n {
-			err = &Error{"file not found", ENOENT}
+			err = Enotexist
 			goto error
 		}
 
@@ -95,7 +95,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 		}
 	}
 
-	return newfid, nil
+	return newfid, Egood
 
 error:
 	clnt.Clunk(newfid)

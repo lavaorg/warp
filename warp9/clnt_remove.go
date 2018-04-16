@@ -6,10 +6,10 @@ package warp9
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
-func (clnt *Clnt) Remove(fid *Fid) error {
+func (clnt *Clnt) Remove(fid *Fid) W9Err {
 	tc := clnt.NewFcall()
 	err := tc.packTremove(fid.Fid)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -21,10 +21,10 @@ func (clnt *Clnt) Remove(fid *Fid) error {
 }
 
 // Removes the named file. Returns nil if the operation is successful.
-func (clnt *Clnt) FRemove(path string) error {
-	var err error
+func (clnt *Clnt) FRemove(path string) W9Err {
+	var err W9Err
 	fid, err := clnt.FWalk(path)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 

@@ -69,20 +69,22 @@ MESSAGES
 
     size[4] Rversion tag[2] msize[4] version[s]
 
-    size[4] Rerror tag[2] ename[s]
-    PROPOSAL: size[4] Rerror tag[2] err[2]
+    PROPOSAL: add Treport Report
+    size[4] Treport tag[2] atok[4] uid[4] aname[s]
+
+    size[4] Rreport tag[2] count[2] data[count]
+
+    size[4] Rerror tag[2] err[2]
 
     size[4] Tflush tag[2] oldtag[2]
 
     size[4] Rflush tag[2]
 
-    size[4] Tauth tag[2] afid[4] uname[s] aname[s]
-    PROPOSAL: size[4] Tauth tag[2] afid[4] uid[4] aname[s]
+    size[4] Tauth tag[2] atok[4] uid[4] aname[s]
 
     size[4] Rauth tag[2] aqid[13]
 
-    size[4] Tattach tag[2] fid[4] atok[4] uname[s] aname[s]
-    PROPOSAL: size[4] Tattach tag[2] fid[4] atok[4] uid[4] aname[s]
+    size[4] Tattach tag[2] fid[4] atok[4] uid[4] aname[s]
 
     size[4] Rattach tag[2] qid[13]
 

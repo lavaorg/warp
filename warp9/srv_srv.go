@@ -8,7 +8,6 @@ package warp9
 
 import (
 	"fmt"
-	"net"
 	"sync"
 )
 
@@ -105,7 +104,6 @@ type Srv struct {
 	sync.Mutex
 	Id         string // Used for debugging and stats
 	Msize      uint32 // Maximum size of the Warp9 messages supported by the server
-	Dotu       bool   // If true, the server supports the Warp9.u extension
 	Debuglevel int    // debug level
 	Upool      Users  // Interface for finding users and groups known to the object server
 	Maxpend    int    // Maximum pending outgoing requests
@@ -115,38 +113,14 @@ type Srv struct {
 	conns map[*Conn]*Conn // List of connections
 }
 
-// The Conn type represents a connection from a client to the object server
-type Conn struct {
-	sync.Mutex
-	Srv        *Srv
-	Msize      uint32 // maximum size of Warp9 messages for the connection
-	Dotu       bool   // if true, both the client and the server speak Warp9.u
-	Id         string // used for debugging and stats
-	Debuglevel int
-
-	conn    net.Conn
-	fidpool map[uint32]*SrvFid
-	reqs    map[uint16]*SrvReq // all outstanding requests
-
-	reqout chan *SrvReq
-	rchan  chan *Fcall
-	done   chan bool
-
-	// stats
-	nreqs   int    // number of requests processed by the server
-	tsz     uint64 // total size of the T messages received
-	rsz     uint64 // total size of the R messages sent
-	npend   int    // number of currently pending messages
-	maxpend int    // maximum number of pending messages
-	nreads  int    // number of reads
-	nwrites int    // number of writes
-}
-
-// The SrvFid type identifies a object on the object server.
+// The SrvFid type references an object on the object server.
 // A new SrvFid is created when the user attaches to the object server (the Attach
-// operation), or when Walk-ing to a object. The SrvFid values are created
-// automatically by the srv implementation. The SrvFidDestroy operation is called
-// when a SrvFid is destroyed.
+// operation), or when Walk-ing to an object. The SrvFid values are created
+// automatically by the srv implementation.
+// There can be multiple SrvFid's refering to the same Object, both within a
+// Conn or from multple Conn's
+// A fid, thus a SrvFid, must be unique within a Conn (e.g. Conn's are a fid space)
+// The SrvFidDestroy operation is called when a SrvFid is destroyed.
 type SrvFid struct {
 	sync.Mutex
 	fid       uint32
@@ -193,7 +167,7 @@ func (srv *Srv) Start(ops interface{}) bool {
 
 	srv.ops = ops
 	if srv.Upool == nil {
-		srv.Upool = OsUsers
+		srv.Upool = Identity
 	}
 
 	if srv.Msize < IOHDRSZ {
@@ -257,14 +231,14 @@ func (req *SrvReq) Process() {
 		req.Fid = conn.FidGet(tc.Fid)
 		srv.Unlock()
 		if req.Fid == nil {
-			req.RespondError(Err(Eunknownfid))
+			req.RespondError(Eunknownfid)
 			return
 		}
 	}
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(&Error{"unknown message type", EINVAL})
+		req.RespondError(Ebadw9msg)
 
 	case Tversion:
 		srv.version(req)
@@ -467,10 +441,6 @@ func (conn *Conn) FidNew(fidno uint32) *SrvFid {
 	conn.Unlock()
 
 	return fid
-}
-
-func (conn *Conn) String() string {
-	return conn.Srv.Id + "/" + conn.Id
 }
 
 // Increase the reference count for the fid.

@@ -17,10 +17,6 @@ contain a directory entry, stat, laid out as follows:
 
     size[2]     -- total byte count of the following data
 
-    type[2]     -- implementation use
-
-    dev[4]      -- implementation use
-
     qid.type[1] -- the object's type (directory, etc.), represented as a bit vector
                    corresponding to the high 8 bits of the object's mode word.
 
@@ -42,6 +38,7 @@ contain a directory entry, stat, laid out as follows:
     uid[s]      -- owner name
 
     gid[s]      -- group name
+
     muid[s]     -- name of the user who last modified the object.
 
 Integers in this encoding are in little-endian order (least significant byte
@@ -51,11 +48,11 @@ The mode contains permission bits as described in intro and the following:
 
     DMDIR (0x80000000)   -- The object is a Directory object.
 
-	DMAPPED (0x40000000) -- The object can only be appended to.
+    DMAPPED (0x40000000) -- The object can only be appended to.
 
-	DMEXCL (0x20000000)  -- The object will be accessed exclusivly.
+    DMEXCL (0x20000000)  -- The object will be accessed exclusivly.
 
-	DMTMP (0x04000000)   -- The object is tempoary
+    DMTMP (0x04000000)   -- The object is tempoary
 
 these attributes are echoed in Qid.type.
 

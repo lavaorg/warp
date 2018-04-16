@@ -6,7 +6,7 @@ package warp9
 
 import "fmt"
 
-func permToString(perm uint32) string {
+func PermToString(perm uint32) string {
 	ret := ""
 
 	if perm&DMMASK == 0 {
@@ -76,9 +76,9 @@ func (qid *Qid) String() string {
 }
 
 func (d *Dir) String() string {
-	ret := fmt.Sprintf("%s %s [%s:%s:%s] %d Q", permToString(d.Mode), d.Name, d.Uid, d.Gid, d.Muid, d.Length)
+	ret := fmt.Sprintf("%s %s [%d:%d:%d] %d Q", PermToString(d.Mode), d.Name, d.Uid, d.Gid, d.Muid, d.Length)
 	ret += d.Qid.String() + " "
-	ret += fmt.Sprintf("at[%d] mt[%d] (%d,%d)", d.Atime, d.Mtime, d.Type, d.Dev)
+	ret += fmt.Sprintf("at[%d] mt[%d]", d.Atime, d.Mtime)
 
 	return ret
 }
@@ -95,18 +95,18 @@ func (fc *Fcall) String() string {
 		ret = fmt.Sprintf("Rversion tag %d msize %d version '%s'", fc.Tag, fc.Msize, fc.Version)
 	case Tauth:
 		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' aname '%s'",
-			fc.Tag, fc.Afid, fc.Uname, fc.Aname)
+			fc.Tag, fc.Atok, fc.Uid, fc.Aname)
 	case Rauth:
 		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Rattach:
 		ret = fmt.Sprintf("Rattach tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Tattach:
-		ret = fmt.Sprintf("Tattach tag %d fid %d afid %d uname '%s' aname '%s'",
-			fc.Tag, fc.Fid, fc.Afid, fc.Uname, fc.Aname)
+		ret = fmt.Sprintf("Tattach tag %d fid %d atok %d uid '%d' aname '%s'",
+			fc.Tag, fc.Fid, fc.Atok, fc.Uid, fc.Aname)
 	case Tflush:
 		ret = fmt.Sprintf("Tflush tag %d oldtag %d", fc.Tag, fc.Oldtag)
 	case Rerror:
-		ret = fmt.Sprintf("Rerror tag %d ename '%s'", fc.Tag, fc.Error)
+		ret = fmt.Sprintf("Rerror tag %d err %d '%s'", fc.Tag, fc.Error, fc.Error)
 	case Twalk:
 		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d [", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {
@@ -127,7 +127,7 @@ func (fc *Fcall) String() string {
 		ret = fmt.Sprintf("Rcreate tag %d qid %v iounit %d", fc.Tag, &fc.Qid, fc.Iounit)
 	case Tcreate:
 		ret = fmt.Sprintf("Tcreate tag %d fid %d name '%s' perm ", fc.Tag, fc.Fid, fc.Name)
-		ret += permToString(fc.Perm)
+		ret += PermToString(fc.Perm)
 		ret += fmt.Sprintf(" mode %x ", fc.Mode)
 	case Tread:
 		ret = fmt.Sprintf("Tread tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, fc.Count)

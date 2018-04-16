@@ -96,11 +96,11 @@ func (tag *Tag) reqproc() {
 	}
 }
 
-func (tag *Tag) Auth(afid *Fid, user User, aname string) error {
+func (tag *Tag) Auth(afid *Fid, user User, aname string) W9Err {
 	req := tag.reqAlloc()
 	req.fid = afid
-	err := req.Tc.packTauth(afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
-	if err != nil {
+	err := req.Tc.packTauth(afid.Fid, user.Id(), aname)
+	if err != Egood {
 		return err
 	}
 
@@ -108,7 +108,7 @@ func (tag *Tag) Auth(afid *Fid, user User, aname string) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Attach(fid, afid *Fid, user User, aname string) error {
+func (tag *Tag) Attach(fid, afid *Fid, user User, aname string) W9Err {
 	var afno uint32
 
 	if afid != nil {
@@ -119,8 +119,8 @@ func (tag *Tag) Attach(fid, afid *Fid, user User, aname string) error {
 
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := req.Tc.packTattach(fid.Fid, afno, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
-	if err != nil {
+	err := req.Tc.packTattach(fid.Fid, afno, user.Id(), aname)
+	if err != Egood {
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (tag *Tag) Attach(fid, afid *Fid, user User, aname string) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
+func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) W9Err {
 	req := tag.reqAlloc()
 	req.fid = newfid
 	if len(wnames) == 0 {
@@ -136,7 +136,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 	}
 
 	err := req.Tc.packTwalk(fid.Fid, newfid.Fid, wnames)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -144,11 +144,11 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Open(fid *Fid, mode uint8) error {
+func (tag *Tag) Open(fid *Fid, mode uint8) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTopen(fid.Fid, mode)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -156,11 +156,11 @@ func (tag *Tag) Open(fid *Fid, mode uint8) error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, extattr string) error {
+func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, extattr string) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTcreate(fid.Fid, name, perm, mode, extattr)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -168,66 +168,66 @@ func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, extattr s
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
+func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTread(fid.Fid, offset, count)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
+func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTwrite(fid.Fid, offset, uint32(len(data)), data)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Clunk(fid *Fid) error {
+func (tag *Tag) Clunk(fid *Fid) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTclunk(fid.Fid)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Remove(fid *Fid) error {
+func (tag *Tag) Remove(fid *Fid) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTremove(fid.Fid)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Stat(fid *Fid) error {
+func (tag *Tag) Stat(fid *Fid) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := req.Tc.packTstat(fid.Fid)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Wstat(fid *Fid, dir *Dir) error {
+func (tag *Tag) Wstat(fid *Fid, dir *Dir) W9Err {
 	req := tag.reqAlloc()
 	req.fid = fid
-	err := req.Tc.packTwstat(fid.Fid, dir, tag.clnt.Dotu)
-	if err != nil {
+	err := req.Tc.packTwstat(fid.Fid, dir)
+	if err != Egood {
 		return err
 	}
 

@@ -9,7 +9,7 @@ func (srv *Srv) version(req *SrvReq) {
 	conn := req.Conn
 
 	if tc.Msize < IOHDRSZ {
-		req.RespondError(&Error{"msize too small", EINVAL})
+		req.RespondError(Emsize)
 		return
 	}
 
@@ -17,11 +17,7 @@ func (srv *Srv) version(req *SrvReq) {
 		conn.Msize = tc.Msize
 	}
 
-	conn.Dotu = tc.Version == "9P2000.u" && srv.Dotu
 	ver := "9P2000"
-	if conn.Dotu {
-		ver = "9P2000.u"
-	}
 
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
@@ -44,24 +40,24 @@ func (srv *Srv) version(req *SrvReq) {
 func (srv *Srv) auth(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
-	if tc.Afid == NOFID {
-		req.RespondError(Err(Eunknownfid))
+	if tc.Atok == NOTOK {
+		req.RespondError(Eunknownfid)
 		return
 	}
 
-	req.Afid = conn.FidNew(tc.Afid)
+	req.Afid = conn.FidNew(tc.Atok)
 	if req.Afid == nil {
-		req.RespondError(Err(Einuse))
+		req.RespondError(Einuse)
 		return
 	}
 
 	var user User = nil
-	if tc.Uname != "" {
-		user = srv.Upool.Uname2User(tc.Uname)
+	if tc.Uid != NOUID {
+		user = srv.Upool.User(tc.Uid)
 	}
 
 	if user == nil {
-		req.RespondError(Err(Enouser))
+		req.RespondError(Enouser)
 		return
 	}
 
@@ -70,13 +66,13 @@ func (srv *Srv) auth(req *SrvReq) {
 	if aop, ok := (srv.ops).(AuthOps); ok {
 		aqid, err := aop.AuthInit(req.Afid, tc.Aname)
 		if err != nil {
-			req.RespondError(err)
+			req.RespondError(Eauthinit)
 		} else {
 			aqid.Type |= QTAUTH // just in case
 			req.RespondRauth(aqid)
 		}
 	} else {
-		req.RespondError(Err(Enoauth))
+		req.RespondError(Enoauth)
 	}
 
 }
@@ -91,30 +87,30 @@ func (srv *Srv) attach(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 	if tc.Fid == NOFID {
-		req.RespondError(Err(Eunknownfid))
+		req.RespondError(Eunknownfid)
 		return
 	}
 
 	req.Fid = conn.FidNew(tc.Fid)
 	if req.Fid == nil {
-		req.RespondError(Err(Einuse))
+		req.RespondError(Einuse)
 		return
 	}
 
-	if tc.Afid != NOFID {
-		req.Afid = conn.FidGet(tc.Afid)
+	if tc.Atok != NOTOK {
+		req.Afid = conn.FidGet(tc.Atok)
 		if req.Afid == nil {
-			req.RespondError(Err(Eunknownfid))
+			req.RespondError(Eunknownfid)
 		}
 	}
 
 	var user User = nil
-	if tc.Uname != "" {
-		user = srv.Upool.Uname2User(tc.Uname)
+	if tc.Uid != NOUID {
+		user = srv.Upool.User(tc.Uid)
 	}
 
 	//if user == nil {
-	//	req.RespondError(Err(Enouser))
+	//	req.RespondError(Enouser)
 	//	return
 	//}
 
@@ -122,7 +118,7 @@ func (srv *Srv) attach(req *SrvReq) {
 	if aop, ok := (srv.ops).(AuthOps); ok {
 		err := aop.AuthCheck(req.Fid, req.Afid, tc.Aname)
 		if err != nil {
-			req.RespondError(err)
+			req.RespondError(Eauthchk)
 			return
 		}
 	}
@@ -179,20 +175,20 @@ func (srv *Srv) walk(req *SrvReq) {
 
 	/* we can't walk regular files, only clone them */
 	if len(tc.Wname) > 0 && (fid.Type&QTDIR) == 0 {
-		req.RespondError(Err(Enotdir))
+		req.RespondError(Enotdir)
 		return
 	}
 
 	/* we can't walk open files */
 	if fid.opened {
-		req.RespondError(Err(Ebaduse))
+		req.RespondError(Ebaduse)
 		return
 	}
 
 	if tc.Fid != tc.Newfid {
 		req.Newfid = conn.FidNew(tc.Newfid)
 		if req.Newfid == nil {
-			req.RespondError(Err(Einuse))
+			req.RespondError(Einuse)
 			return
 		}
 
@@ -233,12 +229,12 @@ func (srv *Srv) open(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
 	if fid.opened {
-		req.RespondError(Err(Eopen))
+		req.RespondError(Eopen)
 		return
 	}
 
 	if (fid.Type&QTDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Err(Eperm))
+		req.RespondError(Eperm)
 		return
 	}
 
@@ -256,18 +252,18 @@ func (srv *Srv) create(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
 	if fid.opened {
-		req.RespondError(Err(Eopen))
+		req.RespondError(Eopen)
 		return
 	}
 
 	if (fid.Type & QTDIR) == 0 {
-		req.RespondError(Err(Enotdir))
+		req.RespondError(Enotdir)
 		return
 	}
 
 	/* can't open directories for other than reading */
 	if (tc.Perm&DMDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Err(Eperm))
+		req.RespondError(Eperm)
 		return
 	}
 
@@ -286,31 +282,29 @@ func (srv *Srv) read(req *SrvReq) {
 	tc := req.Tc
 	fid := req.Fid
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Err(Etoolarge))
+		req.RespondError(Etoolarge)
 		return
 	}
 
 	if (fid.Type & QTAUTH) != 0 {
-		var n int
 
 		rc := req.Rc
 		err := rc.InitRread(tc.Count)
-		if err != nil {
+		if err != Egood {
 			req.RespondError(err)
 			return
 		}
 
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
-			n, err = op.AuthRead(fid, tc.Offset, rc.Data)
-			if err != nil {
-				req.RespondError(err)
+			n, e := op.AuthRead(fid, tc.Offset, rc.Data)
+			if e != nil {
+				req.RespondError(Eauthread)
 				return
 			}
-
 			rc.SetRreadCount(uint32(n))
 			req.Respond()
 		} else {
-			req.RespondError(Err(Enotimpl))
+			req.RespondError(Enotimpl)
 		}
 
 		return
@@ -341,24 +335,25 @@ func (srv *Srv) write(req *SrvReq) {
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
 			n, err := op.AuthWrite(req.Fid, tc.Offset, tc.Data)
 			if err != nil {
-				req.RespondError(err)
+				//log err??
+				req.RespondError(Eauthwrite)
 			} else {
 				req.RespondRwrite(uint32(n))
 			}
 		} else {
-			req.RespondError(Err(Enotimpl))
+			req.RespondError(Enotimpl)
 		}
 
 		return
 	}
 
 	if !fid.opened || (fid.Type&QTDIR) != 0 || (fid.Omode&3) == OREAD {
-		req.RespondError(Err(Ebaduse))
+		req.RespondError(Ebaduse)
 		return
 	}
 
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Err(Etoolarge))
+		req.RespondError(Etoolarge)
 		return
 	}
 
@@ -372,7 +367,7 @@ func (srv *Srv) clunk(req *SrvReq) {
 			op.AuthDestroy(fid)
 			req.RespondRclunk()
 		} else {
-			req.RespondError(Err(Enotimpl))
+			req.RespondError(Enotimpl)
 		}
 
 		return
@@ -403,7 +398,7 @@ func (srv *Srv) wstat(req *SrvReq) {
 		d := &req.Tc.Dir
 		if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
 			d.Path != uint64(0xFFFFFFFFFFFFFFFF) {
-			req.RespondError(Err(Eperm))
+			req.RespondError(Eperm))
 			return
 		}
 

@@ -4,9 +4,10 @@
 
 package warp9
 
+/*
 import "sync"
 
-var once sync.Once
+//var once sync.Once
 
 type osUser struct {
 	uid int
@@ -85,3 +86,4 @@ func (up *osUsers) Gid2Group(gid int) Group {
 func (up *osUsers) Gname2Group(gname string) Group {
 	return nil
 }
+*/

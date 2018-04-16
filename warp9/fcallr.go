@@ -5,10 +5,10 @@
 package warp9
 
 // Create a Rversion message in the specified Fcall.
-func (fc *Fcall) packRversion(msize uint32, version string) error {
+func (fc *Fcall) packRversion(msize uint32, version string) W9Err {
 	size := 4 + 2 + len(version) /* msize[4] version[s] */
 	p, err := fc.packCommon(size, Rversion)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -17,64 +17,63 @@ func (fc *Fcall) packRversion(msize uint32, version string) error {
 	p = pint32(msize, p)
 	p = pstr(version, p)
 
-	return nil
+	return Egood
 }
 
 // Create a Rauth message in the specified Fcall.
-func (fc *Fcall) packRauth(aqid *Qid) error {
+func (fc *Fcall) packRauth(aqid *Qid) W9Err {
 	size := 13 /* aqid[13] */
 	p, err := fc.packCommon(size, Rauth)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Qid = *aqid
 	p = pqid(aqid, p)
-	return nil
+	return Egood
 }
 
 // Create a Rerror message in the specified Fcall.
-func (fc *Fcall) packRerror(error string) error {
+func (fc *Fcall) packRerror(err W9Err) W9Err {
 
-	size := 2 + len(error) /* ename[s] */
+	size := 2 /* error[2] */
 
-	p, err := fc.packCommon(size, Rerror)
-	if err != nil {
-		return err
+	p, locerr := fc.packCommon(size, Rerror)
+	if locerr != Egood {
+		return locerr
 	}
 
-	fc.Error = error
-	p = pstr(error, p)
-
-	return nil
+	fc.Error = err
+	p = perr(err, p)
+	return Egood
 }
 
 // Create a Rflush message in the specified Fcall.
-func (fc *Fcall) packRflush() error {
+func (fc *Fcall) packRflush() W9Err {
 	_, err := fc.packCommon(0, Rflush)
 
 	return err
 }
 
 // Create a Rattach message in the specified Fcall.
-func (fc *Fcall) packRattach(aqid *Qid) error {
+func (fc *Fcall) packRattach(aqid *Qid) W9Err {
 	size := 13 /* aqid[13] */
 	p, err := fc.packCommon(size, Rattach)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Qid = *aqid
 	p = pqid(aqid, p)
-	return nil
+	return Egood
 }
 
 // Create a Rwalk message in the specified Fcall.
-func (fc *Fcall) packRwalk(wqids []Qid) error {
+func (fc *Fcall) packRwalk(wqids []Qid) W9Err {
 	nwqid := len(wqids)
 	size := 2 + nwqid*13 /* nwqid[2] nwname*wqid[13] */
 	p, err := fc.packCommon(size, Rwalk)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -85,14 +84,14 @@ func (fc *Fcall) packRwalk(wqids []Qid) error {
 		p = pqid(&wqids[i], p)
 	}
 
-	return nil
+	return Egood
 }
 
 // Create a Ropen message in the specified Fcall.
-func (fc *Fcall) packRopen(qid *Qid, iounit uint32) error {
+func (fc *Fcall) packRopen(qid *Qid, iounit uint32) W9Err {
 	size := 13 + 4 /* qid[13] iounit[4] */
 	p, err := fc.packCommon(size, Ropen)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -100,14 +99,14 @@ func (fc *Fcall) packRopen(qid *Qid, iounit uint32) error {
 	fc.Iounit = iounit
 	p = pqid(qid, p)
 	p = pint32(iounit, p)
-	return nil
+	return Egood
 }
 
 // Create a Rcreate message in the specified Fcall.
-func (fc *Fcall) packRcreate(qid *Qid, iounit uint32) error {
+func (fc *Fcall) packRcreate(qid *Qid, iounit uint32) W9Err {
 	size := 13 + 4 /* qid[13] iounit[4] */
 	p, err := fc.packCommon(size, Rcreate)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -115,24 +114,24 @@ func (fc *Fcall) packRcreate(qid *Qid, iounit uint32) error {
 	fc.Iounit = iounit
 	p = pqid(qid, p)
 	p = pint32(iounit, p)
-	return nil
+	return Egood
 }
 
 // Initializes the specified Fcall value to contain Rread message.
 // The user should copy the returned data to the slice pointed by
 // fc.Data and call SetRreadCount to update the data size to the
 // actual value.
-func (fc *Fcall) InitRread(count uint32) error {
+func (fc *Fcall) InitRread(count uint32) W9Err {
 	size := int(4 + count) /* count[4] data[count] */
 	p, err := fc.packCommon(size, Rread)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Count = count
 	fc.Data = p[4 : fc.Count+4]
 	p = pint32(count, p)
-	return nil
+	return Egood
 }
 
 // Updates the size of the data returned by Rread. Expects that
@@ -149,62 +148,59 @@ func (fc *Fcall) SetRreadCount(count uint32) {
 }
 
 // Create a Rread message in the specified Fcall.
-func (fc *Fcall) packRread(data []byte) error {
+func (fc *Fcall) packRread(data []byte) W9Err {
 	count := uint32(len(data))
 	err := fc.InitRread(count)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	copy(fc.Data, data)
-	return nil
+	return Egood
 }
 
 // Create a Rwrite message in the specified Fcall.
-func (fc *Fcall) packRwrite(count uint32) error {
+func (fc *Fcall) packRwrite(count uint32) W9Err {
 	p, err := fc.packCommon(4, Rwrite) /* count[4] */
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Count = count
 
 	p = pint32(count, p)
-	return nil
+	return Egood
 }
 
 // Create a Rclunk message in the specified Fcall.
-func (fc *Fcall) packRclunk() error {
+func (fc *Fcall) packRclunk() W9Err {
 	_, err := fc.packCommon(0, Rclunk)
 	return err
 }
 
 // Create a Rremove message in the specified Fcall.
-func (fc *Fcall) packRremove() error {
+func (fc *Fcall) packRremove() W9Err {
 	_, err := fc.packCommon(0, Rremove)
 	return err
 }
 
-// Create a Rstat message in the specified Fcall. If dotu is true, the
-// function will create a 9P2000.u stat representation that includes
-// st.Nuid, st.Ngid, st.Nmuid and st.Ext. Otherwise these values will be
-// ignored.
-func (fc *Fcall) packRstat(d *Dir, dotu bool) error {
-	stsz := statsz(d, dotu)
+// Create a Rstat message in the specified Fcall.
+func (fc *Fcall) packRstat(d *Dir) W9Err {
+	stsz := statsz(d)
 	size := 2 + stsz /* stat[n] */
 	p, err := fc.packCommon(size, Rstat)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	p = pint16(uint16(stsz), p)
-	p = pstat(d, p, dotu)
+	p = pstat(d, p)
 	fc.Dir = *d
-	return nil
+	return Egood
 }
 
 // Create a Rwstat message in the specified Fcall.
-func (fc *Fcall) packRwstat() error {
+func (fc *Fcall) packRwstat() W9Err {
 	_, err := fc.packCommon(0, Rwstat)
 	return err
 }

@@ -6,10 +6,10 @@
 package warp9
 
 // Create a Tversion message in the specified Fcall.
-func (fc *Fcall) packTversion(msize uint32, version string) error {
+func (fc *Fcall) packTversion(msize uint32, version string) W9Err {
 	size := 4 + 2 + len(version) /* msize[4] version[s] */
 	p, err := fc.packCommon(size, Tversion)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -18,71 +18,63 @@ func (fc *Fcall) packTversion(msize uint32, version string) error {
 	p = pint32(msize, p)
 	p = pstr(version, p)
 
-	return nil
+	return Egood
 }
 
 // Create a Tauth message in the specified Fcall.
-func (fc *Fcall) packTauth(fid uint32, uname string, aname string, unamenum uint32, dotu bool) error {
-	size := 4 + 2 + 2 + len(uname) + len(aname) /* fid[4] uname[s] aname[s] */
-	if dotu {
-		size += 4 /* n_uname[4] */
-	}
+func (fc *Fcall) packTauth(fid uint32, uid uint32, aname string) W9Err {
+	size := 4 + 4 + 2 + len(aname) /* fid[4] uid[4] aname[s] */
 
 	p, err := fc.packCommon(size, Tauth)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Fid = fid
-	fc.Uname = uname
+	fc.Uid = uid
 	fc.Aname = aname
 	p = pint32(fid, p)
-	p = pstr(uname, p)
+	p = pint32(uid, p)
 	p = pstr(aname, p)
 
-	return nil
+	return Egood
 }
 
 // Create a Tflush message in the specified Fcall.
-func (fc *Fcall) packTflush(oldtag uint16) error {
+func (fc *Fcall) packTflush(oldtag uint16) W9Err {
 	p, err := fc.packCommon(2, Tflush)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Oldtag = oldtag
 	p = pint16(oldtag, p)
-	return nil
+	return Egood
 }
 
-// Create a Tattach message in the specified Fcall. If dotu is true,
-// the function will create 9P2000.u including the nuname value, otherwise
-// nuname is ignored.
-func (fc *Fcall) packTattach(fid uint32, afid uint32, uname string, aname string, unamenum uint32, dotu bool) error {
-	size := 4 + 4 + 2 + len(uname) + 2 + len(aname) /* fid[4] afid[4] uname[s] aname[s] */
-	if dotu {
-		size += 4
-	}
+// Create a Tattach message in the specified Fcall.
+func (fc *Fcall) packTattach(fid uint32, atok uint32, uid uint32, aname string) W9Err {
+	size := 4 + 4 + 4 + 2 + len(aname) /* fid[4] afid[4] uid[4] aname[s] */
 
 	p, err := fc.packCommon(size, Tattach)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Fid = fid
-	fc.Afid = afid
-	fc.Uname = uname
+	fc.Atok = atok
+	fc.Uid = uid
 	fc.Aname = aname
 	p = pint32(fid, p)
-	p = pint32(afid, p)
-	p = pstr(uname, p)
+	p = pint32(atok, p)
+	p = pint32(uid, p)
 	p = pstr(aname, p)
 
-	return nil
+	return Egood
 }
 
 // Create a Twalk message in the specified Fcall.
-func (fc *Fcall) packTwalk(fid uint32, newfid uint32, wnames []string) error {
+func (fc *Fcall) packTwalk(fid uint32, newfid uint32, wnames []string) W9Err {
 	nwname := len(wnames)
 	size := 4 + 4 + 2 + nwname*2 /* fid[4] newfid[4] nwname[2] nwname*wname[s] */
 	for i := 0; i < nwname; i++ {
@@ -90,7 +82,7 @@ func (fc *Fcall) packTwalk(fid uint32, newfid uint32, wnames []string) error {
 	}
 
 	p, err := fc.packCommon(size, Twalk)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -105,14 +97,14 @@ func (fc *Fcall) packTwalk(fid uint32, newfid uint32, wnames []string) error {
 		p = pstr(wnames[i], p)
 	}
 
-	return nil
+	return Egood
 }
 
 // Create a Topen message in the specified Fcall.
-func (fc *Fcall) packTopen(fid uint32, mode uint8) error {
+func (fc *Fcall) packTopen(fid uint32, mode uint8) W9Err {
 	size := 4 + 1 /* fid[4] mode[1] */
 	p, err := fc.packCommon(size, Topen)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -120,19 +112,19 @@ func (fc *Fcall) packTopen(fid uint32, mode uint8) error {
 	fc.Mode = mode
 	p = pint32(fid, p)
 	p = pint8(mode, p)
-	return nil
+	return Egood
 }
 
 // Create a Tcreate message in the specified Fcall. If dotu is true,
 // the function will create a 9P2000.u message that includes ext.
 // Otherwise the ext value is ignored.
-func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, extattr string) error {
+func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, extattr string) W9Err {
 	size := 4 + 2 + len(name) + 4 + 1 /* fid[4] name[s] perm[4] mode[1] */
 
 	//RAU extattr size += 2 + len(extattr)
 
 	p, err := fc.packCommon(size, Tcreate)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -149,14 +141,14 @@ func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, e
 	fc.ExtAttr = extattr
 	//p = pstr(extattr, p)
 
-	return nil
+	return Egood
 }
 
 // Create a Tread message in the specified Fcall.
-func (fc *Fcall) packTread(fid uint32, offset uint64, count uint32) error {
+func (fc *Fcall) packTread(fid uint32, offset uint64, count uint32) W9Err {
 	size := 4 + 8 + 4 /* fid[4] offset[8] count[4] */
 	p, err := fc.packCommon(size, Tread)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -166,15 +158,15 @@ func (fc *Fcall) packTread(fid uint32, offset uint64, count uint32) error {
 	p = pint32(fid, p)
 	p = pint64(offset, p)
 	p = pint32(count, p)
-	return nil
+	return Egood
 }
 
 // Create a Twrite message in the specified Fcall.
-func (fc *Fcall) packTwrite(fid uint32, offset uint64, count uint32, data []byte) error {
+func (fc *Fcall) packTwrite(fid uint32, offset uint64, count uint32, data []byte) W9Err {
 	c := len(data)
 	size := 4 + 8 + 4 + c /* fid[4] offset[8] count[4] data[count] */
 	p, err := fc.packCommon(size, Twrite)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -186,53 +178,53 @@ func (fc *Fcall) packTwrite(fid uint32, offset uint64, count uint32, data []byte
 	p = pint32(count, p)
 	fc.Data = p
 	copy(fc.Data, data)
-	return nil
+	return Egood
 }
 
 // Create a Tclunk message in the specified Fcall.
-func (fc *Fcall) packTclunk(fid uint32) error {
+func (fc *Fcall) packTclunk(fid uint32) W9Err {
 	p, err := fc.packCommon(4, Tclunk) /* fid[4] */
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Fid = fid
 	p = pint32(fid, p)
-	return nil
+	return Egood
 }
 
 // Create a Tremove message in the specified Fcall.
-func (fc *Fcall) packTremove(fid uint32) error {
+func (fc *Fcall) packTremove(fid uint32) W9Err {
 	p, err := fc.packCommon(4, Tremove) /* fid[4] */
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Fid = fid
 	p = pint32(fid, p)
-	return nil
+	return Egood
 }
 
 // Create a Tstat message in the specified Fcall.
-func (fc *Fcall) packTstat(fid uint32) error {
+func (fc *Fcall) packTstat(fid uint32) W9Err {
 	p, err := fc.packCommon(4, Tstat) /* fid[4] */
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
 	fc.Fid = fid
 	p = pint32(fid, p)
-	return nil
+	return Egood
 }
 
 // Create a Twstat message in the specified Fcall. If dotu is true
 // the function will create 9P2000.u message, otherwise the 9P2000.u
 // specific fields from the Stat value will be ignored.
-func (fc *Fcall) packTwstat(fid uint32, d *Dir, dotu bool) error {
-	stsz := statsz(d, dotu)
+func (fc *Fcall) packTwstat(fid uint32, d *Dir) W9Err {
+	stsz := 0            // statsz(d, dotu)
 	size := 4 + 2 + stsz /* fid[4] stat[n] */
 	p, err := fc.packCommon(size, Twstat)
-	if err != nil {
+	if err != Egood {
 		return err
 	}
 
@@ -240,6 +232,6 @@ func (fc *Fcall) packTwstat(fid uint32, d *Dir, dotu bool) error {
 	fc.Dir = *d
 	p = pint32(fid, p)
 	p = pint16(uint16(stsz), p)
-	p = pstat(d, p, dotu)
-	return nil
+	p = pstat(d, p)
+	return Egood
 }
