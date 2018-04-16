@@ -23,7 +23,7 @@ func main() {
 
 	flag.Parse()
 
-	uid := uint32(0xFFFFFFFF & os.Getuid())
+	uid := uint32(0xFFFFFFFF & uint32(os.Getuid()))
 	user := warp9.Identity.User(uid)
 	warp9.DefaultDebuglevel = *dbglev
 
@@ -150,7 +150,6 @@ func cmdstat(c9 *warp9.Clnt) {
 		fmt.Printf("    Mode: %s\n", warp9.PermToString(d.Mode))
 		fmt.Printf(" UID:GID: %d:%d\n", d.Uid, d.Gid)
 		fmt.Printf("     Qid: %s\n", d.Qid.String())
-		//fmt.Printf(" Dev/Typ: %x,%x\n", d.Dev, d.Type)
 		fmt.Printf("  Access: %v\n", d.Atime)
 		fmt.Printf("  Modify: %v\n", time.Unix(int64(d.Mtime), 0))
 		fmt.Printf("Last uid: %d\n", d.Muid)
