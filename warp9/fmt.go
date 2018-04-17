@@ -114,11 +114,7 @@ func (fc *Fcall) String() string {
 		}
 		ret += "]"
 	case Rwalk:
-		ret = fmt.Sprintf("Rwalk tag %d nwqid[", fc.Tag)
-		for i := 0; i < len(fc.Wqid); i++ {
-			ret += fmt.Sprintf("%v,", &fc.Wqid[i])
-		}
-		ret += "]"
+		ret = fmt.Sprintf("Rwalk tag %d wqid %v", fc.Tag, &fc.Qid)
 	case Topen:
 		ret = fmt.Sprintf("Topen tag %d fid %d mode %x", fc.Tag, fc.Fid, fc.Mode)
 	case Ropen:

@@ -7,6 +7,9 @@
 // All the packet conversion code in this file is crap and needs a rewrite.
 package warp9
 
+// Version
+const Warp9Version = "Warp9.0"
+
 // Warp9 message types
 const (
 	Tversion = 100 + iota
@@ -140,7 +143,8 @@ var minFcsize = [...]uint32{
 	2,  /* Tflush oldtag[2] */
 	0,  /* Rflush */
 	10, /* Twalk fid[4] newfid[4] nwname[2]... */
-	2,  /* Rwalk nwqid[2]... */
+	//	2,  /* Rwalk nwqid[2]... */
+	13, /* Rwalk wqid[13] */
 	5,  /* Topen fid[4] mode[1] */
 	17, /* Ropen qid[13] iounit[4] */
 	11, /* Tcreate fid[4] name[s] perm[4] mode[1] */

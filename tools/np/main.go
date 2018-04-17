@@ -31,6 +31,7 @@ func main() {
 	if err != warp9.Egood {
 		log.Fatalf("Error:%v:%v\n", err, err.String())
 	}
+	defer c9.Clunk(c9.Root)
 
 	if flag.NArg() != 2 {
 		usage()
@@ -100,6 +101,7 @@ func cmdls(c9 *warp9.Clnt) {
 		mlog.Error("error:%v", err)
 		return
 	}
+	defer c9.Clunk(fid)
 
 	mlog.Debug("ls: fid: %v", fid)
 
@@ -110,7 +112,7 @@ func cmdls(c9 *warp9.Clnt) {
 			mlog.Error("error:%v", err)
 			return
 		}
-		defer f.Close()
+
 		mlog.Debug("fid opened; readdir:%v", fid)
 		for {
 			d, err := f.Readdir(0)

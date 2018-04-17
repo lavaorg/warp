@@ -69,9 +69,22 @@ func (fc *Fcall) packRattach(aqid *Qid) W9Err {
 }
 
 // Create a Rwalk message in the specified Fcall.
+func (fc *Fcall) packRwalk(wqid *Qid) W9Err {
+	size := 13 //wqid
+	p, err := fc.packCommon(size, Rwalk)
+	if err != Egood {
+		return err
+	}
+
+	fc.Qid = *wqid
+	p = pqid(wqid, p)
+	return Egood
+}
+
+/* -- replaced
 func (fc *Fcall) packRwalk(wqids []Qid) W9Err {
 	nwqid := len(wqids)
-	size := 2 + nwqid*13 /* nwqid[2] nwname*wqid[13] */
+	size := 2 + nwqid*13 // nwqid[2] nwname*wqid[13]
 	p, err := fc.packCommon(size, Rwalk)
 	if err != Egood {
 		return err
@@ -86,7 +99,7 @@ func (fc *Fcall) packRwalk(wqids []Qid) W9Err {
 
 	return Egood
 }
-
+*/
 // Create a Ropen message in the specified Fcall.
 func (fc *Fcall) packRopen(qid *Qid, iounit uint32) W9Err {
 	size := 13 + 4 /* qid[13] iounit[4] */

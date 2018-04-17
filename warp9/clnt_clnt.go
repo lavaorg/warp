@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // The clnt package provides definitions and functions used to implement
-// a 9P2000 file client.
+// a Warp9 file client.
 package warp9
 
 import (
@@ -40,7 +40,7 @@ type Clnt struct {
 }
 
 // A Fid type represents a file on the server. Fids are used for the
-// low level methods that correspond directly to the 9P2000 message requests
+// low level methods that correspond directly to the Warp9 message requests
 type Fid struct {
 	sync.Mutex
 	Clnt   *Clnt // Client the fid belongs to
@@ -339,16 +339,15 @@ func NewClnt(c net.Conn, msize uint32) *Clnt {
 	return clnt
 }
 
-// Establishes a new socket connection to the 9P server and creates
+// Establishes a new socket connection to the Warp9 server and creates
 // a client object for it. Negotiates the dialect and msize for the
 // connection. Returns a Clnt object, or Error.
 func Connect(c net.Conn, msize uint32) (*Clnt, W9Err) {
 	clnt := NewClnt(c, msize)
-	ver := "9P2000"
 
 	clntmsize := atomic.LoadUint32(&clnt.Msize)
 	tc := NewFcall(clntmsize)
-	err := tc.packTversion(clntmsize, ver)
+	err := tc.packTversion(clntmsize, Warp9Version)
 	if err != Egood {
 		return nil, err
 	}

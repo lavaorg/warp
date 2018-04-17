@@ -12,7 +12,7 @@ import (
 // sequence and associates the resulting file with newfid. If no wnames
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
-func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]Qid, W9Err) {
+func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) (*Qid, W9Err) {
 	tc := clnt.NewFcall()
 	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
 	if err != Egood {
@@ -25,7 +25,7 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]Qid, W9Err) {
 	}
 
 	newfid.walked = true
-	return rc.Wqid, Egood
+	return &rc.Qid, Egood
 }
 
 // Walks to a named file. Returns a Fid associated with the file,
@@ -77,16 +77,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, W9Err) {
 		}
 
 		newfid.walked = true
-		if len(rc.Wqid) != n {
-			err = Enotexist
-			goto error
-		}
-
-		if len(rc.Wqid) > 0 {
-			newfid.Qid = rc.Wqid[len(rc.Wqid)-1]
-		} else {
-			newfid.Qid = fid.Qid
-		}
+		newfid.Qid = rc.Qid
 
 		wnames = wnames[n:]
 		fid = newfid

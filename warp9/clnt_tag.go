@@ -70,9 +70,7 @@ func (tag *Tag) reqproc() {
 			case Twalk:
 				if !err {
 					fid.walked = true
-					if len(rc.Wqid) > 0 {
-						fid.Qid = rc.Wqid[len(rc.Wqid)-1]
-					}
+					fid.Qid = rc.Qid
 				} else {
 					fid.User = nil
 				}

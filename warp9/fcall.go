@@ -16,7 +16,7 @@ type Fcall struct {
 	Version string   // protocol version (used by Tversion, Rversion)
 	Oldtag  uint16   // tag of the message to flush (used by Tflush)
 	Error   W9Err    // error (used by Rerror)
-	Qid              // file Qid (used by Rauth, Rattach, Ropen, Rcreate)
+	Qid              // file Qid (used by Rauth, Rattach, Ropen, Rcreate, Rwalk)
 	Iounit  uint32   // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
 	Atok    uint32   // authentication fid (used by Tauth, Tattach)
 	Uid     uint32   // user uid (used by Tauth, Tattach)
@@ -26,12 +26,12 @@ type Fcall struct {
 	Mode    uint8    // open mode (used by Topen, Tcreate)
 	Newfid  uint32   // the fid that represents the file walked to (used by Twalk)
 	Wname   []string // list of names to walk (used by Twalk)
-	Wqid    []Qid    // list of Qids for the walked files (used by Rwalk)
-	Offset  uint64   // offset in the file to read/write from/to (used by Tread, Twrite)
-	Count   uint32   // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
-	Data    []uint8  // data read/to-write (used by Rread, Twrite)
-	Dir              // file description (used by Rstat, Twstat)
-	ExtAttr string   // used by Tcreate
+	//Wqid    []Qid    // list of Qids for the walked files (used by Rwalk)
+	Offset  uint64  // offset in the file to read/write from/to (used by Tread, Twrite)
+	Count   uint32  // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
+	Data    []uint8 // data read/to-write (used by Rread, Twrite)
+	Dir             // file description (used by Rstat, Twstat)
+	ExtAttr string  // used by Tcreate
 
 	Pkt []uint8 // raw packet data
 	Buf []uint8 // buffer to put the raw data in
@@ -133,7 +133,7 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 			goto szerror
 		}
 
-	case Rauth, Rattach:
+	case Rauth, Rattach, Rwalk:
 		p = gqid(p, &fc.Qid)
 
 	case Tflush:
@@ -171,13 +171,14 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 				goto szerror
 			}
 		}
-
-	case Rwalk:
-		m, p = gint16(p)
-		fc.Wqid = make([]Qid, m)
-		for i := 0; i < int(m); i++ {
-			p = gqid(p, &fc.Wqid[i])
-		}
+		/* -- replacing Rwalk
+		case Rwalk:
+			m, p = gint16(p)
+			fc.Wqid = make([]Qid, m)
+			for i := 0; i < int(m); i++ {
+				p = gqid(p, &fc.Wqid[i])
+			}
+		*/
 
 	case Topen:
 		fc.Fid, p = gint32(p)

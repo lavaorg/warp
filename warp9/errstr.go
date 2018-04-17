@@ -19,6 +19,7 @@ func (e W9Err) String() string {
 
 const (
 	Egood = iota * -1
+	Ebadver
 	Eperm
 	Enotdir
 	Enoauth
@@ -69,6 +70,7 @@ const (
 
 var ErrStr []string = []string{
 	/*Egood      */ "no err",
+	/*Ebadver    */ "bad version",
 	/*Eperm      */ "permission denied",
 	/*Enotdir    */ "not a directory",
 	/*Enoauth    */ "upas/fs: authentication not required",

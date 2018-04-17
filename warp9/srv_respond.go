@@ -67,8 +67,8 @@ func (req *SrvReq) RespondRattach(aqid *Qid) {
 }
 
 // Respond to the request with Rwalk message
-func (req *SrvReq) RespondRwalk(wqids []Qid) {
-	err := req.Rc.packRwalk(wqids)
+func (req *SrvReq) RespondRwalk(wqid *Qid) { //RAU FIXME
+	err := req.Rc.packRwalk(wqid)
 	if err != Egood {
 		req.RespondError(err)
 	} else {

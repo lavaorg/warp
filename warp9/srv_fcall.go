@@ -8,6 +8,11 @@ func (srv *Srv) version(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 
+	if tc.Version != Warp9Version {
+		req.RespondError(Ebadver)
+		return
+	}
+
 	if tc.Msize < IOHDRSZ {
 		req.RespondError(Emsize)
 		return
@@ -16,8 +21,6 @@ func (srv *Srv) version(req *SrvReq) {
 	if tc.Msize < conn.Msize {
 		conn.Msize = tc.Msize
 	}
-
-	ver := "9P2000"
 
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
@@ -34,7 +37,7 @@ func (srv *Srv) version(req *SrvReq) {
 	}
 	conn.Unlock()
 
-	req.RespondRversion(conn.Msize, ver)
+	req.RespondRversion(conn.Msize, Warp9Version)
 }
 
 func (srv *Srv) auth(req *SrvReq) {
@@ -208,17 +211,7 @@ func (srv *Srv) walkPost(req *SrvReq) {
 		return
 	}
 
-	n := len(rc.Wqid)
-	if n > 0 {
-		req.Newfid.Type = rc.Wqid[n-1].Type
-	} else {
-		req.Newfid.Type = req.Fid.Type
-	}
-
-	// Don't retain the fid if only a partial walk succeeded
-	if n != len(req.Tc.Wname) {
-		return
-	}
+	req.Newfid.Type = rc.Qid.Type
 
 	if req.Newfid.fid != req.Fid.fid {
 		req.Newfid.IncRef()

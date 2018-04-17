@@ -115,9 +115,7 @@ func (fc *Fcall) packTopen(fid uint32, mode uint8) W9Err {
 	return Egood
 }
 
-// Create a Tcreate message in the specified Fcall. If dotu is true,
-// the function will create a 9P2000.u message that includes ext.
-// Otherwise the ext value is ignored.
+// Create a Tcreate message in the specified Fcall.
 func (fc *Fcall) packTcreate(fid uint32, name string, perm uint32, mode uint8, extattr string) W9Err {
 	size := 4 + 2 + len(name) + 4 + 1 /* fid[4] name[s] perm[4] mode[1] */
 
@@ -217,9 +215,7 @@ func (fc *Fcall) packTstat(fid uint32) W9Err {
 	return Egood
 }
 
-// Create a Twstat message in the specified Fcall. If dotu is true
-// the function will create 9P2000.u message, otherwise the 9P2000.u
-// specific fields from the Stat value will be ignored.
+// Create a Twstat message in the specified Fcall.
 func (fc *Fcall) packTwstat(fid uint32, d *Dir) W9Err {
 	stsz := 0            // statsz(d, dotu)
 	size := 4 + 2 + stsz /* fid[4] stat[n] */
@@ -233,5 +229,6 @@ func (fc *Fcall) packTwstat(fid uint32, d *Dir) W9Err {
 	p = pint32(fid, p)
 	p = pint16(uint16(stsz), p)
 	p = pstat(d, p)
+	//rau: handle extended attribute
 	return Egood
 }
