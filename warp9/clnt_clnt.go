@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // The clnt package provides definitions and functions used to implement
-// a Warp9 file client.
+// a Warp9 client.
 package warp9
 
 import (
@@ -16,7 +16,7 @@ import (
 
 // The Clnt type represents a Warp9 client. The client is connected to
 // a Warp9 object server and its methods can be used to access and manipulate
-// the files exported by the server.
+// the objects exported by the server.
 type Clnt struct {
 	sync.Mutex
 	Debuglevel int    // =0 don't print anything, >0 print Fcalls, >1 print raw packets
@@ -33,33 +33,33 @@ type Clnt struct {
 	reqlast  *Req
 	err      W9Err
 
-	reqchan chan *Req
-	tchan   chan *Fcall
+	reqchan chan *Req   //pool of avail req structs
+	tchan   chan *Fcall //pool of avail fcall structs
 
 	next, prev *Clnt
 }
 
-// A Fid type represents a file on the server. Fids are used for the
+// A Fid type represents an object on the server. Fids are used for the
 // low level methods that correspond directly to the Warp9 message requests
 type Fid struct {
 	sync.Mutex
 	Clnt   *Clnt // Client the fid belongs to
 	Iounit uint32
-	Qid           // The Qid description for the file
-	Mode   uint8  // Open mode (one of O* values) (if file is open)
+	Qid           // The Qid description for the object
+	Mode   uint8  // Open mode (one of O* values) (if object is open)
 	Fid    uint32 // Fid number
 	User          // The user the fid belongs to
-	walked bool   // true if the fid points to a walked file on the server
+	walked bool   // true if the fid points to a walked object on the server
 }
 
-// The file is similar to the Fid, but is used in the high-level client
-// interface. We expose the Fid so that client code can use Remove
-// on a fid, the same way a kernel can.
-type File struct {
+// The object is similar to the Fid, but is used in the high-level client
+// interface.
+type Object struct {
 	Fid    *Fid
 	offset uint64
 }
 
+// enspsulates a request to a server
 type Req struct {
 	sync.Mutex
 	Clnt       *Clnt
@@ -80,6 +80,7 @@ type ClntList struct {
 var clnts *ClntList
 var DefaultDebuglevel int
 
+// rpc invocation with an existing Req structure
 func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 	var tag uint16
 
@@ -110,6 +111,7 @@ func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 	return Egood
 }
 
+// rpc invocation, creating a new Req structure
 func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err W9Err) {
 	r := clnt.ReqAlloc()
 	r.Tc = tc
@@ -434,8 +436,8 @@ func (clnt *Clnt) logFcall(fc *Fcall) {
 
 // FidFile returns a File that represents the given Fid, initially at the given
 // offset.
-func FidFile(fid *Fid, offset uint64) *File {
-	return &File{fid, offset}
+func FidObject(fid *Fid, offset uint64) *Object {
+	return &Object{fid, offset}
 }
 
 func init() {

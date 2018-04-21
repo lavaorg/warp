@@ -1,5 +1,5 @@
 // Copyright 2018 Larry Rau. All rights reserved
-// See Apache2 LIC/*ENS/*E
+// See Apache2 License file
 
 package warp9
 

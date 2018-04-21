@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-// Starting from the file associated with fid, walks all wnames in
-// sequence and associates the resulting file with newfid. If no wnames
-// were walked successfully, an Error is returned. Otherwise a slice with a
-// Qid for each walked name is returned.
-func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) (*Qid, W9Err) {
+// Starting from the object associated with fid, walks all wnames in
+// sequence and associates the resulting object with newfid. If no wnames
+// were walked successfully, an Error is returned. Otherwise a Qid for the
+// object represented by the last wname is returned.
+func (clnt *Clnt) FWalk(fid *Fid, newfid *Fid, wnames []string) (*Qid, W9Err) {
 	tc := clnt.NewFcall()
 	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
 	if err != Egood {
@@ -28,9 +28,9 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) (*Qid, W9Err) {
 	return &rc.Qid, Egood
 }
 
-// Walks to a named file. Returns a Fid associated with the file,
+// Walks to a named object. Returns a Fid associated with the object,
 // or an Error.
-func (clnt *Clnt) FWalk(path string) (*Fid, W9Err) {
+func (clnt *Clnt) Walk(path string) (*Fid, W9Err) {
 	var err W9Err = Egood
 
 	var i, m int

@@ -23,8 +23,8 @@ func (clnt *Clnt) Clunk(fid *Fid) (err W9Err) {
 	return
 }
 
-// Closes a file. Returns nil if successful.
-func (file *File) Close() W9Err {
+// Closes an object. Returns nil if successful.
+func (obj *Object) Close() W9Err {
 	// Should we cancel all pending requests for the File
-	return file.Fid.Clnt.Clunk(file.Fid)
+	return obj.Fid.Clnt.Clunk(obj.Fid)
 }

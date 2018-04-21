@@ -4,8 +4,20 @@
 
 package warp9
 
-// Returns the metadata for the file associated with the Fid, or an Error.
-func (clnt *Clnt) Stat(fid *Fid) (*Dir, W9Err) {
+// Returns the metadata for a named object, or an Error.
+func (clnt *Clnt) Stat(path string) (*Dir, W9Err) {
+	fid, err := clnt.Walk(path)
+	if err != Egood {
+		return nil, err
+	}
+
+	d, err := clnt.FStat(fid)
+	clnt.Clunk(fid)
+	return d, err
+}
+
+// Returns the metadata for the object associated with the Fid, or an Error.
+func (clnt *Clnt) FStat(fid *Fid) (*Dir, W9Err) {
 	tc := clnt.NewFcall()
 	err := tc.packTstat(fid.Fid)
 	if err != Egood {
@@ -20,20 +32,8 @@ func (clnt *Clnt) Stat(fid *Fid) (*Dir, W9Err) {
 	return &rc.Dir, Egood
 }
 
-// Returns the metadata for a named file, or an Error.
-func (clnt *Clnt) FStat(path string) (*Dir, W9Err) {
-	fid, err := clnt.FWalk(path)
-	if err != Egood {
-		return nil, err
-	}
-
-	d, err := clnt.Stat(fid)
-	clnt.Clunk(fid)
-	return d, err
-}
-
-// Modifies the data of the file associated with the Fid, or an Error.
-func (clnt *Clnt) Wstat(fid *Fid, dir *Dir) W9Err {
+// Modifies the data of the object associated with the Fid, or an Error.
+func (clnt *Clnt) FWstat(fid *Fid, dir *Dir) W9Err {
 	tc := clnt.NewFcall()
 	err := tc.packTwstat(fid.Fid, dir)
 	if err != Egood {

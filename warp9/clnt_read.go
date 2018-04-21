@@ -4,7 +4,7 @@
 
 package warp9
 
-// Reads count bytes starting from offset from the file associated with the fid.
+// Reads count bytes starting from offset from the object associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
 // Error.
 func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, W9Err) {
@@ -25,21 +25,21 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, W9Err) {
 	return rc.Data, Egood
 }
 
-// Reads up to len(buf) bytes from the File. Returns the number
+// Reads up to len(buf) bytes from the Object. Returns the number
 // of bytes read, or an Error.
-func (file *File) Read(buf []byte) (int, W9Err) {
-	n, err := file.ReadAt(buf, int64(file.offset))
+func (obj *Object) Read(buf []byte) (int, W9Err) {
+	n, err := obj.ReadAt(buf, int64(obj.offset))
 	if err == Egood {
-		file.offset += uint64(n)
+		obj.offset += uint64(n)
 	}
 
 	return n, Egood
 }
 
-// Reads up to len(buf) bytes from the file starting from offset.
+// Reads up to len(buf) bytes from the object starting from offset.
 // Returns the number of bytes read, or an Error.
-func (file *File) ReadAt(buf []byte, offset int64) (int, W9Err) {
-	b, err := file.Fid.Clnt.Read(file.Fid, uint64(offset), uint32(len(buf)))
+func (obj *Object) ReadAt(buf []byte, offset int64) (int, W9Err) {
+	b, err := obj.Fid.Clnt.Read(obj.Fid, uint64(offset), uint32(len(buf)))
 	if err != Egood {
 		return 0, err
 	}
@@ -52,13 +52,13 @@ func (file *File) ReadAt(buf []byte, offset int64) (int, W9Err) {
 	return len(b), Egood
 }
 
-// Reads exactly len(buf) bytes from the File starting from offset.
+// Reads exactly len(buf) bytes from the Object starting from offset.
 // Returns the number of bytes read (could be less than len(buf) if
-// end-of-file is reached), or an Error.
-func (file *File) Readn(buf []byte, offset uint64) (int, W9Err) {
+// end-of-data of the object is reached), or an Error.
+func (obj *Object) Readn(buf []byte, offset uint64) (int, W9Err) {
 	ret := 0
 	for len(buf) > 0 {
-		n, err := file.ReadAt(buf, int64(offset))
+		n, err := obj.ReadAt(buf, int64(offset))
 		if err != Egood {
 			return 0, err
 		}
@@ -75,20 +75,20 @@ func (file *File) Readn(buf []byte, offset uint64) (int, W9Err) {
 	return ret, Egood
 }
 
-// Reads the content of the directory associated with the File.
+// Reads the content of the directory associated with the Object.
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*Dir, W9Err) {
-	buf := make([]byte, file.Fid.Clnt.Msize-IOHDRSZ)
+func (obj *Object) Readdir(num int) ([]*Dir, W9Err) {
+	buf := make([]byte, obj.Fid.Clnt.Msize-IOHDRSZ)
 	dirs := make([]*Dir, 32)
 	pos := 0
-	offset := file.offset
+	offset := obj.offset
 	defer func() {
-		file.offset = offset
+		obj.offset = offset
 	}()
 	for {
-		n, err := file.Read(buf)
+		n, err := obj.Read(buf)
 		if err != Egood && err != Eeof {
 			return nil, err
 		}

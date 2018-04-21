@@ -1,6 +1,7 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+// Copyright 2018 Larry Rau.
 
 package warp9
 
@@ -8,9 +9,51 @@ import (
 	"strings"
 )
 
-// Opens the file associated with the fid. Returns nil if
+// Creates and opens a named object.
+// Returns the object if the operation is successful, or an Error.
+func (clnt *Clnt) Create(path string, perm uint32, mode uint8) (*Object, W9Err) {
+	n := strings.LastIndex(path, "/")
+	if n < 0 {
+		n = 0
+	}
+
+	fid, err := clnt.Walk(path[0:n])
+	if err != Egood {
+		return nil, err
+	}
+
+	if path[n] == '/' {
+		n++
+	}
+
+	err = clnt.FCreate(fid, path[n:], perm, mode, "")
+	if err != Egood {
+		clnt.Clunk(fid)
+		return nil, err
+	}
+
+	return &Object{fid, 0}, Egood
+}
+
+// Opens a named object. Returns the opened object, or an Error.
+func (clnt *Clnt) Open(path string, mode uint8) (*Object, W9Err) {
+	fid, err := clnt.Walk(path)
+	if err != Egood {
+		return nil, err
+	}
+
+	err = clnt.FOpen(fid, mode)
+	if err != Egood {
+		clnt.Clunk(fid)
+		return nil, err
+	}
+
+	return &Object{fid, 0}, Egood
+}
+
+// Opens the object currently associated with the fid. Returns nil if
 // the operation is successful.
-func (clnt *Clnt) Open(fid *Fid, mode uint8) W9Err {
+func (clnt *Clnt) FOpen(fid *Fid, mode uint8) W9Err {
 	tc := clnt.NewFcall()
 	err := tc.packTopen(fid.Fid, mode)
 	if err != Egood {
@@ -31,9 +74,29 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) W9Err {
 	return Egood
 }
 
-// Creates a file in the directory associated with the fid. Returns nil
+// like FOpen but returns an Object in the open state. The expectation is
+// the fid was already the result of a walk.
+func (clnt *Clnt) FOpenObject(fid *Fid, mode uint8) (*Object, W9Err) {
+	if fid == nil {
+		return nil, Efidnil
+	}
+	if !fid.walked {
+		return nil, Ebaduse
+	}
+
+	err := clnt.FOpen(fid, mode)
+	if err != Egood {
+		clnt.Clunk(fid)
+		return nil, err
+	}
+
+	return &Object{fid, 0}, Egood
+
+}
+
+// Creates an object in the directory associated with the fid. Returns nil
 // if the operation is successful.
-func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, extattr string) W9Err {
+func (clnt *Clnt) FCreate(fid *Fid, name string, perm uint32, mode uint8, extattr string) W9Err {
 	tc := clnt.NewFcall()
 	err := tc.packTcreate(fid.Fid, name, perm, mode, extattr)
 	if err != Egood {
@@ -52,66 +115,4 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, extattr
 	}
 	fid.Mode = mode
 	return Egood
-}
-
-// Creates and opens a named file.
-// Returns the file if the operation is successful, or an Error.
-func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, W9Err) {
-	n := strings.LastIndex(path, "/")
-	if n < 0 {
-		n = 0
-	}
-
-	fid, err := clnt.FWalk(path[0:n])
-	if err != Egood {
-		return nil, err
-	}
-
-	if path[n] == '/' {
-		n++
-	}
-
-	err = clnt.Create(fid, path[n:], perm, mode, "")
-	if err != Egood {
-		clnt.Clunk(fid)
-		return nil, err
-	}
-
-	return &File{fid, 0}, Egood
-}
-
-// Opens a named file. Returns the opened file, or an Error.
-func (clnt *Clnt) FOpen(path string, mode uint8) (*File, W9Err) {
-	fid, err := clnt.FWalk(path)
-	if err != Egood {
-		return nil, err
-	}
-
-	err = clnt.Open(fid, mode)
-	if err != Egood {
-		clnt.Clunk(fid)
-		return nil, err
-	}
-
-	return &File{fid, 0}, Egood
-}
-
-// Opens an existing fid, returns a valid File. This behaves as does
-// FOpen, however, using a previously aquired fid, usually from FWalk.
-func (clnt *Clnt) FFidOpen(fid *Fid, mode uint8) (*File, W9Err) {
-	if fid == nil {
-		return nil, Efidnil
-	}
-	if !fid.walked {
-		return nil, Ebaduse
-	}
-
-	err := clnt.Open(fid, mode)
-	if err != Egood {
-		clnt.Clunk(fid)
-		return nil, err
-	}
-
-	return &File{fid, 0}, Egood
-
 }

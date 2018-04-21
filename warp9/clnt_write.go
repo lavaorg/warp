@@ -25,12 +25,12 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, W9Err) {
 	return int(rc.Count), Egood
 }
 
-// Writes up to len(buf) bytes to a file. Returns the number of
+// Writes up to len(buf) bytes to an object. Returns the number of
 // bytes written, or an Error.
-func (file *File) Write(buf []byte) (int, W9Err) {
-	n, err := file.WriteAt(buf, int64(file.offset))
+func (obj *Object) Write(buf []byte) (int, W9Err) {
+	n, err := obj.WriteAt(buf, int64(obj.offset))
 	if err == Egood {
-		file.offset += uint64(n)
+		obj.offset += uint64(n)
 	}
 
 	return n, err
@@ -38,17 +38,17 @@ func (file *File) Write(buf []byte) (int, W9Err) {
 
 // Writes up to len(buf) bytes starting from offset. Returns the number
 // of bytes written, or an Error.
-func (file *File) WriteAt(buf []byte, offset int64) (int, W9Err) {
-	return file.Fid.Clnt.Write(file.Fid, buf, uint64(offset))
+func (obj *Object) WriteAt(buf []byte, offset int64) (int, W9Err) {
+	return obj.Fid.Clnt.Write(obj.Fid, buf, uint64(offset))
 }
 
 // Writes exactly len(buf) bytes starting from offset. Returns the number of
 // bytes written. If Error is returned the number of bytes can be less
 // than len(buf).
-func (file *File) Writen(buf []byte, offset uint64) (int, W9Err) {
+func (obj *Object) Writen(buf []byte, offset uint64) (int, W9Err) {
 	ret := 0
 	for len(buf) > 0 {
-		n, err := file.WriteAt(buf, int64(offset))
+		n, err := obj.WriteAt(buf, int64(offset))
 		if err != Egood {
 			return ret, err
 		}

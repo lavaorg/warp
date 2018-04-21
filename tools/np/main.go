@@ -55,8 +55,8 @@ func main() {
 
 	case "stat":
 		cmdstat(c9)
-	case "fcat":
-		cmdfcat(c9)
+	case "get":
+		cmdget(c9)
 	}
 	return
 }
@@ -67,7 +67,7 @@ func usage() {
 }
 
 func cmdcat(c9 *warp9.Clnt) {
-	f, err := c9.FOpen(flag.Arg(1), warp9.OREAD)
+	f, err := c9.Open(flag.Arg(1), warp9.OREAD)
 	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
@@ -96,7 +96,7 @@ func cmdcat(c9 *warp9.Clnt) {
 
 func cmdls(c9 *warp9.Clnt) {
 
-	fid, err := c9.FWalk(flag.Arg(1))
+	fid, err := c9.Walk(flag.Arg(1))
 	if err != warp9.Egood {
 		mlog.Error("error:%v", err)
 		return
@@ -107,7 +107,7 @@ func cmdls(c9 *warp9.Clnt) {
 
 	if fid.Qid.Type&warp9.QTDIR > 0 {
 		// read directory
-		f, err := c9.FFidOpen(fid, warp9.OREAD)
+		f, err := c9.FOpenObject(fid, warp9.OREAD)
 		if err != warp9.Egood {
 			mlog.Error("error:%v", err)
 			return
@@ -125,7 +125,7 @@ func cmdls(c9 *warp9.Clnt) {
 		}
 	} else {
 		// stat the file
-		d, err := c9.Stat(fid)
+		d, err := c9.FStat(fid)
 		if err != warp9.Egood {
 			log.Println("Error", err)
 			return
@@ -138,7 +138,7 @@ func cmdls(c9 *warp9.Clnt) {
 }
 
 func cmdstat(c9 *warp9.Clnt) {
-	d, err := c9.FStat(flag.Arg(1))
+	d, err := c9.Stat(flag.Arg(1))
 	if err != warp9.Egood {
 		log.Println("Error", err)
 		return
@@ -160,18 +160,13 @@ func cmdstat(c9 *warp9.Clnt) {
 
 }
 
-func cmdfcat(c9 *warp9.Clnt) {
-
-	err := c9.Open(c9.Root, warp9.OREAD)
-	if err != warp9.Egood {
-		log.Fatalf("open err:%v\n", err)
-	}
-
-	buf, err := c9.Read(c9.Root, uint64(0), uint32(10))
+func cmdget(c9 *warp9.Clnt) {
+	data, qid, err := c9.Get(flag.Arg(1), 0)
 	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
-
-	os.Stdout.Write(buf[0:])
-	os.Stdout.Write([]byte{'\n'})
+	if *verbose {
+		fmt.Printf("qid = %v\nData:\n", qid)
+	}
+	os.Stdout.Write(data[0:])
 }
