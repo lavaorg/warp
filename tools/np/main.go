@@ -96,7 +96,12 @@ func cmdcat(c9 *warp9.Clnt) {
 
 func cmdls(c9 *warp9.Clnt) {
 
-	fid, err := c9.Walk(flag.Arg(1))
+	n := flag.Arg(1)
+	if n == "." || n == "/" {
+		n = ""
+	}
+
+	fid, err := c9.Walk(n)
 	if err != warp9.Egood {
 		mlog.Error("error:%v", err)
 		return
@@ -120,7 +125,8 @@ func cmdls(c9 *warp9.Clnt) {
 				break
 			}
 			for i := 0; i < len(d); i++ {
-				os.Stdout.WriteString(d[i].Name + "\n")
+				//os.Stdout.WriteString(d[i].Name + "\n")
+				fmt.Printf("%v\n", d[i])
 			}
 		}
 	} else {

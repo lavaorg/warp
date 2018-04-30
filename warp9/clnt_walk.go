@@ -49,7 +49,7 @@ func (clnt *Clnt) Walk(path string) (*Fid, W9Err) {
 	fid := clnt.Root
 	newfid.User = fid.User
 
-	/* get rid of the empty names */
+	// get rid of the empty names
 	for i, m = 0, 0; i < len(wnames); i++ {
 		if wnames[i] != "" {
 			wnames[m] = wnames[i]

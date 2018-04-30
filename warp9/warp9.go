@@ -65,7 +65,7 @@ const (
 	QTMOUNT  = 0x10 // mounted channel
 	QTAUTH   = 0x08 // authentication object
 	QTTMP    = 0x04 // non-backed-up object
-	QTFILE   = 0x00
+	QTOBJ    = 0x00
 )
 
 // Flags for the mode field in Topen and Tcreate messages
@@ -92,6 +92,7 @@ const (
 	DMREAD  = 0x4 // mode bit for read permission
 	DMWRITE = 0x2 // mode bit for write permission
 	DMUSE   = 0x1 // mode bit for execute permission
+
 )
 
 const (

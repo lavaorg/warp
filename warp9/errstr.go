@@ -18,7 +18,7 @@ func (e W9Err) String() string {
 }
 
 const (
-	Egood = iota * -1
+	Egood W9Err = iota * -1
 	Ebadver
 	Eperm
 	Enotdir
@@ -58,6 +58,7 @@ const (
 	Eauthchk
 	Eauthread
 	Eauthwrite
+	Efidnoaux
 
 	Emax
 
@@ -71,42 +72,43 @@ const (
 var ErrStr []string = []string{
 	/*Egood      */ "no err",
 	/*Ebadver    */ "bad version",
-	/*Eperm      */ "permission denied",
-	/*Enotdir    */ "not a directory",
+	/*Eperm      */ "obj: permission denied",
+	/*Enotdir    */ "obj: not a directory",
 	/*Enoauth    */ "upas/fs: authentication not required",
-	/*Enotexist  */ "object does not exist",
-	/*Einuse     */ "object in use",
-	/*Eexist     */ "object exists",
-	/*Enotowner  */ "not owner",
+	/*Enotexist  */ "obj: does not exist",
+	/*Einuse     */ "fid: in use",
+	/*Eexist     */ "obj: exists",
+	/*Enotowner  */ "user: not owner",
 	/*Eisopen    */ "file already open for I/O",
 	/*Excl       */ "exclusive use object already open",
 	/*Ename      */ "illegal name",
-	/*Ebadw9msg  */ "unknown warp9 message",
-	/*Eunknownfid*/ "unknown fid",
-	/*Ebaduse    */ "bad use of fid",
-	/*Eopen      */ "fid already opened",
+	/*Ebadw9msg  */ "warp9 msg: unknown",
+	/*Eunknownfid*/ "fid: unknown",
+	/*Ebaduse    */ "fid: bad use",
+	/*Eopen      */ "fid: already opened",
 	/*Etoolarge  */ "i/o count too large",
 	/*Ebadoffset */ "bad offset in directory read",
 	/*Edirchange */ "cannot convert between files and directories",
-	/*Enouser    */ "unknown user",
+	/*Enouser    */ "user: unknown",
 	/*Enotimpl   */ "not implemented",
 	/*Enotempty  */ "directory not empty",
 	/*Enoent     */ "no entry found in walk",
 	/*Enotopen   */ "file not open",
-	/*Ebaduser   */ "bad user",
+	/*Ebaduser   */ "user: bad",
 	/*Emsize     */ "msize too small",
 	/*Ebufsz     */ "buffer too small",
-	/*Ebadmsgid  */ "bad warp9 msg id",
-	/*Ebaduid    */ "bad u/g/m id",
+	/*Ebadmsgid  */ "warp9 msg: bad id",
+	/*Ebaduid    */ "id: bad u/g/m",
 	/*Ebadmsgsz  */ "bad message size",
 	/*Eio        */ "IO error",
 	/*Einval     */ "unexpected response",
 	/*Edial      */ "dial failed",
 	/*Econn      */ "connection closed",
-	/*Efidnil    */ "nil fid",
+	/*Efidnil    */ "fid: nil",
 	/*Eeof       */ "end of file",
 	/*Eauthinit  */ "authentication init failed",
 	/*Eauthchk   */ "authentication check failed",
 	/*Eauthread  */ "authentication read failed",
 	/*Eauthwrite */ "authentication write failed",
+	/*Efidnoaux  */ "fid: no aux",
 }

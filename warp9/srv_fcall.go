@@ -176,18 +176,30 @@ func (srv *Srv) walk(req *SrvReq) {
 	tc := req.Tc
 	fid := req.Fid
 
-	/* we can't walk regular files, only clone them */
+	// we can't walk regular objects, only clone them
 	if len(tc.Wname) > 0 && (fid.Type&QTDIR) == 0 {
 		req.RespondError(Enotdir)
 		return
 	}
 
-	/* we can't walk open files */
+	// some common bad names -- client should not pass
+	if len(tc.Wname) == 1 {
+		p := tc.Wname[0]
+		if p == "." || p == ".." || p == "/" {
+			req.RespondError(Ename)
+			return
+		}
+	}
+
+	//we can't walk open objects
 	if fid.opened {
-		req.RespondError(Ebaduse)
+		req.RespondError(Eopen)
 		return
 	}
 
+	if req.Fid.Aux == nil {
+		req.RespondError(Efidnoaux)
+	}
 	if tc.Fid != tc.Newfid {
 		req.Newfid = conn.FidNew(tc.Newfid)
 		if req.Newfid == nil {

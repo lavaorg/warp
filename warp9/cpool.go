@@ -4,6 +4,8 @@
 
 package warp9
 
+// internal implementation of a pool of id's
+
 import "sync"
 
 var m2id = [...]uint8{
