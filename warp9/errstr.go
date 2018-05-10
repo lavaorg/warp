@@ -3,6 +3,10 @@
 
 package warp9
 
+import (
+	"github.com/lavaorg/lrt/mlog"
+)
+
 // Errors are int16 all warp errors <0, 0==no err, >0 obj-server errors
 type W9Err int16
 
@@ -10,6 +14,7 @@ func (e W9Err) Error() string {
 	if e < Egood && e > Emax {
 		return ErrStr[e*-1]
 	}
+	mlog.Debug("W9Err:%d", e)
 	return "w9 error"
 }
 
