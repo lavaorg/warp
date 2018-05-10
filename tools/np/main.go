@@ -6,8 +6,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/lavaorg/lrt/mlog"
@@ -33,7 +35,7 @@ func main() {
 	}
 	defer c9.Clunk(c9.Root)
 
-	if flag.NArg() != 2 {
+	if flag.NArg() < 2 {
 		usage()
 		log.Fatal("expected an argument")
 	}
@@ -50,37 +52,46 @@ func main() {
 
 	case "cat":
 		cmdcat(c9)
+	case "ctl":
+		cmdctl(c9)
 	case "ls":
 		cmdls(c9)
-
 	case "stat":
 		cmdstat(c9)
 	case "get":
 		cmdget(c9)
+	case "write":
+		cmdwrite(c9)
 	}
 	return
 }
 
 func usage() {
 	fmt.Println("usage: np [-v][-d dbglev] [-a addr] cmd arg")
-	fmt.Println("\tcmd = {ls,stat,cat,echo}")
+	fmt.Println("\tcmd = {ls,stat,cat,get,write,ctl}")
 }
 
 func cmdcat(c9 *warp9.Clnt) {
-	f, err := c9.Open(flag.Arg(1), warp9.OREAD)
+	o, err := c9.Open(flag.Arg(1), warp9.OREAD)
 	if err != warp9.Egood {
 		log.Fatalf("Error:%v\n", err)
 	}
-	defer f.Close()
+	defer o.Close()
+
+	cat(o)
+}
+
+func cat(o *warp9.Object) {
 
 	buf := make([]byte, 8192)
+	var err error = nil
 	for {
-		n, err := f.Read(buf)
+		n, err := o.Read(buf)
 		if n == 0 {
 			break
 		}
 		if err != warp9.Egood {
-			log.Fatal("Error reading:%v\n", err)
+			mlog.Error("Error reading:%v\n", err)
 		}
 		os.Stdout.Write(buf[0:n])
 		if err == warp9.Eeof {
@@ -88,10 +99,9 @@ func cmdcat(c9 *warp9.Clnt) {
 		}
 	}
 
-	if err != warp9.Egood && err != warp9.Eeof {
+	if err != nil && err != warp9.Egood && err != warp9.Eeof {
 		log.Fatalf("Error:%v\n", err)
 	}
-
 }
 
 func cmdls(c9 *warp9.Clnt) {
@@ -175,4 +185,44 @@ func cmdget(c9 *warp9.Clnt) {
 		fmt.Printf("qid = %v\nData:\n", qid)
 	}
 	os.Stdout.Write(data[0:])
+}
+
+func cmdwrite(c9 *warp9.Clnt) {
+
+	o, err := c9.Open(flag.Arg(1), warp9.OWRITE)
+	if err != warp9.Egood {
+		mlog.Error("Open Error:%v\n", err)
+		return
+	}
+	defer o.Close()
+
+	c, e := io.Copy(o, os.Stdin)
+	if e != nil {
+		mlog.Error("Copy Error:%v\n", err)
+		return
+	}
+
+	fmt.Printf("bytes written:%v\n", c)
+}
+
+func cmdctl(c9 *warp9.Clnt) {
+	o, err := c9.Open(flag.Arg(1), warp9.ORDWR)
+	if err != warp9.Egood {
+		if err != warp9.Enotexist {
+			mlog.Error("Error:%v\n", err)
+		} else {
+			fmt.Printf("object does not exist\n")
+		}
+		return
+	}
+	defer o.Close()
+
+	//rest of command line to object
+	cmd := strings.Join(flag.Args()[2:], " ")
+	_, e := o.Write([]byte(cmd))
+	if e != nil {
+		mlog.Error("Error:%v\n", e)
+	}
+	// read results back
+	cat(o)
 }
