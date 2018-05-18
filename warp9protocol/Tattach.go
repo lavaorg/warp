@@ -14,10 +14,10 @@ Attach: A client initiation of access to a resource server.
 
 The attach message serves as a fresh introduction from a client to the
 server. The clients user id (uid) is provided and this uid will be
-used to guard what objects the client has permission to use. The aname
-parameter is optinal, if provided it will be the name of a specific top
-leel object the server is willing to provide.  If not present it defaults
-an object of the server's choosing.  Note "/", "." and ".." are the equivalent
+used to determine what objects the client has permission to use. The aname
+parameter is optional, if provided it will be the name of a specific top
+level object the server is willing to provide.  If not present it defaults
+to an object of the server's choosing.  Note "/", "." and ".." are the equivalent
 of a blank aname.
 
 The fid parameter, upon success, will represent the root object exported

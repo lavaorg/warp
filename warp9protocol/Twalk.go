@@ -44,6 +44,8 @@ will be returned.
 A walk of the name “..” in the root directory of a server is equivalent to a
 walk with no name elements.
 
+A walk to (foo/dir/) is an aliase (foo/dir/.).
+
 If newfid is the same as fid, the above discussion applies, with the obvious
 difference that if the walk changes the state of newfid, it also changes the
 state of fid; and if newfid is unaffected, then fid is also unaffected.
