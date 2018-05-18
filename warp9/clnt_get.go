@@ -15,7 +15,7 @@ func (clnt *Clnt) Get(path string, offset uint64) ([]byte, *Qid, W9Err) {
 	if err != Egood {
 		return nil, nil, err
 	}
-	qid := &obj.Fid.Qid //remember or qid
+	qid := &obj.Fid.Qid //remember our qid
 	data, err := clnt.Read(obj.Fid, offset, obj.Fid.Iounit)
 	if err != Egood {
 		return nil, qid, err

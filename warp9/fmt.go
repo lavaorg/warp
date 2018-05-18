@@ -83,6 +83,11 @@ func (d *Dir) String() string {
 	return ret
 }
 
+func (f *Fid) String() string {
+	ret := fmt.Sprintf("fid[%d] qid:%v, iounit:%v, walked:%v", f.Fid, f.Qid, f.Iounit, f.walked)
+	return ret
+}
+
 func (fc *Fcall) String() string {
 	ret := ""
 

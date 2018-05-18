@@ -36,10 +36,6 @@ func (bp *BindPoint) GetDir() *warp9.Dir {
 	return bp.GetDir()
 }
 
-func (bp *BindPoint) GetData() []byte {
-	return bp.DirItem.GetData()
-}
-
 func (d *BindPoint) Lookup(n string) Item {
 	return nil
 }

@@ -95,11 +95,11 @@ func init() {
 	Identity.users = make(map[uint32]*w9user)
 	Identity.groups = make(map[uint32]*w9group)
 
-	Identity.addGroup(&w9group{0, "sys", "system users"})
+	Identity.addGroup(&w9group{1, "sys", "system users"})
 	Identity.addGroup(&w9group{2, "nobody", "no users"})
 	Identity.addGroup(&w9group{20, "staff", "normal users"})
 
-	Identity.addUser(&w9user{0, 0, "sys", "system user"})
+	Identity.addUser(&w9user{1, 1, "sys", "system user"})
 	Identity.addUser(&w9user{501, 20, "larry", "a good citizen"})
 
 }

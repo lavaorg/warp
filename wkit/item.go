@@ -17,19 +17,24 @@ import (
 type Item interface {
 	GetDir() *warp9.Dir
 	GetItem() Item
-	Data() []byte
 	IsDirectory() Directory
-	Opened() bool
-	SetOpened(b bool) bool
 	Parent() Directory
 	SetParent(d Directory) error
+	GetQid() warp9.Qid
+	Walked() (Item, error)
 	Read(obuf []byte, off uint64, rcount uint32) (uint32, error)
 	Write(ibuf []byte, off uint64, count uint32) (uint32, error)
+	Open(mode byte) (uint32, error)
+	Clunk() error
+	Remove() error
+	Stat() (*warp9.Dir, error)
+	WStat(dir *warp9.Dir) error
 }
 
 // A special container object that allows objects to be attached and removed.
 type Directory interface {
-	CreateItem(item Item, name string, perm uint32, mode uint8) (Item, error)
+	Name() string
+	Create(name string, perm uint32, mode uint8) (Item, error)
 	Walk(path []string) (Item, error)
 }
 
@@ -58,26 +63,9 @@ func (o *OneItem) GetItem() Item {
 	return o
 }
 
-// Return the byte data of the object
-func (o *OneItem) Data() []byte {
-	return o.Buffer
-}
-
 // Indicate that the object is not a directory, returns nil.
 func (o *OneItem) IsDirectory() Directory {
 	return nil
-}
-
-// set the open state to true or false; return previous state.
-func (o *OneItem) SetOpened(v bool) bool {
-	b := o.opened
-	o.opened = v
-	return b
-}
-
-// Return open status.
-func (o *OneItem) Opened() bool {
-	return o.opened
 }
 
 // Return the object's parent (eg container).
@@ -89,6 +77,15 @@ func (o *OneItem) Parent() Directory {
 func (o *OneItem) SetParent(d Directory) error {
 	o.parent = d
 	return nil
+}
+
+func (o *OneItem) GetQid() warp9.Qid {
+	return o.Dir.Qid
+}
+
+func (o *OneItem) Walked() (Item, error) {
+	mlog.Debug("o.Walked: %T.%v", o, o)
+	return o, nil
 }
 
 // Return the requested set of bytes from the object's byte buffer.
@@ -109,7 +106,7 @@ func (o *OneItem) Read(obuf []byte, off uint64, rcount uint32) (uint32, error) {
 		return 0, warp9.Eio
 	}
 	mlog.Debug("d.Buffer:%v, obuf: %v, off:%v, rcount:%v\n", len(o.Buffer), len(obuf), off, count)
-	mlog.Debug("o:%T %p", o, o)
+	mlog.Debug("o:%T %p %v", o, o, o.Qid)
 	return count, nil
 
 }
@@ -149,6 +146,29 @@ func (o *OneItem) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	return 0, warp9.Eio
 }
 
+// set item to open status
+func (o *OneItem) Open(mode byte) (uint32, error) {
+	o.opened = true
+	return 0, nil
+}
+
+func (o *OneItem) Clunk() error {
+	o.opened = false
+	return nil
+}
+
+func (o *OneItem) Remove() error {
+	return warp9.Enotimpl
+}
+
+func (o *OneItem) Stat() (*warp9.Dir, error) {
+	return &o.Dir, nil
+}
+
+func (o *OneItem) WStat(dir *warp9.Dir) error {
+	return warp9.Enotimpl
+}
+
 //
 // DirItem methods
 //
@@ -162,20 +182,46 @@ func NewDirItem() *DirItem {
 	return d
 }
 
-// Not used for DirItem. Returns nil
-func (d *DirItem) GetData() []byte {
-	return nil
-}
-
 // Always returns self. Is a Directory.
 func (d *DirItem) IsDirectory() Directory {
 	return d
 }
 
+func (d *DirItem) Walked() (Item, error) {
+	return d, nil
+}
+
+func (d *DirItem) Name() string {
+	return d.Dir.Name
+}
+
+func (d *DirItem) Create(name string, perm uint32, mode uint8) (Item, error) {
+	return d.CreateItem(nil, name, perm)
+}
+
+func (d *DirItem) AddItem(item Item, locname string) error {
+	item.SetParent(d)
+	ndir := item.GetDir()
+	ndir.Name = locname
+	ndir.Qid = item.GetQid()
+	ndir.Uid = d.Uid
+	ndir.Gid = d.Gid
+	ndir.Muid = ndir.Uid
+
+	ndir.Atime = uint32(time.Now().Unix())
+	ndir.Mtime = d.Atime
+
+	ndir.Mode = d.Mode
+
+	d.Content[locname] = item
+	return nil
+}
+
 // Places the Item object into the directory with the given attributes.
+// If item is nil; a plain OneItem will be created.
 // Return the item,nil for success
 // Return nil,error otherwise
-func (d *DirItem) CreateItem(item Item, name string, perm uint32, mode uint8) (Item, error) {
+func (d *DirItem) CreateItem(item Item, name string, perm uint32) (Item, error) {
 
 	var i Item
 	nqid := warp9.Qid{warp9.QTOBJ, 0, NextQid()}
@@ -190,6 +236,7 @@ func (d *DirItem) CreateItem(item Item, name string, perm uint32, mode uint8) (I
 			i = item
 		}
 	}
+
 	i.SetParent(d)
 	ndir := i.GetDir()
 	ndir.Name = name
@@ -212,6 +259,7 @@ func (d *DirItem) CreateItem(item Item, name string, perm uint32, mode uint8) (I
 // return the found Item or an error
 func (d *DirItem) Walk(path []string) (Item, error) {
 
+	mlog.Debug("d:%T.%v, path:%v", d, d.Dir.Name, path)
 	if len(path) < 1 {
 		// empty path succeeds in finding self
 		return d, nil
@@ -230,7 +278,9 @@ func (d *DirItem) Walk(path []string) (Item, error) {
 		if item == nil {
 			return nil, warp9.Enotexist
 		}
-		return item, nil
+		// let item know its walked to, it may return a clone
+		mlog.Debug("d.Walk: %T.%v", item, item)
+		return item.Walked()
 	}
 
 	// element must be a diretory to further walk
@@ -251,6 +301,7 @@ func (d *DirItem) Walk(path []string) (Item, error) {
 		return item, warp9.Enotdir
 	}
 	// walk to next dir
+	mlog.Debug("next dir:%T.%v, path:%v", dir, dir.Name(), path)
 	return dir.Walk(path)
 }
 

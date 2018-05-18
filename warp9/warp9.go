@@ -52,9 +52,9 @@ const (
 )
 
 const (
-	MSIZE   = 1048576 + IOHDRSZ // default message size (1048576+IOHdrSz)
-	IOHDRSZ = 24                // the non-data size of the Twrite messages
-	PORT    = 564               // default port for Warp9 object servers
+	MSIZE   = 8192 + IOHDRSZ // default message size (1048576+IOHdrSz)
+	IOHDRSZ = 24             // the non-data size of the Twrite messages
+	PORT    = 9090           // default port for Warp9 object servers
 )
 
 // Qid types
@@ -78,7 +78,7 @@ const (
 	ORCLOSE = 64 // or'ed in, remove on close
 )
 
-// File modes
+// Object modes
 const (
 	// object types -- high order 8bits
 	DMMASK   = 0xFF000000 // masks for top 8bits
@@ -102,7 +102,7 @@ const (
 	NOTOK uint32 = 0xFFFFFFFF // no auth token
 )
 
-// File identifier
+// Server's descriptor of an Object
 type Qid struct {
 	Type    uint8  // type of the object (high 8 bits of the mode)
 	Version uint32 // version number for the path

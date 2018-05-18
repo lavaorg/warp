@@ -25,8 +25,8 @@ func main() {
 
 	flag.Parse()
 
-	uid := uint32(0xFFFFFFFF & uint32(os.Getuid()))
-	user := warp9.Identity.User(uid)
+	//uid := uint32(0xFFFFFFFF & uint32(os.Getuid()))
+	user := warp9.Identity.User(1)
 	warp9.DefaultDebuglevel = *dbglev
 
 	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, user)
@@ -118,8 +118,6 @@ func cmdls(c9 *warp9.Clnt) {
 	}
 	defer c9.Clunk(fid)
 
-	mlog.Debug("ls: fid: %v", fid)
-
 	if fid.Qid.Type&warp9.QTDIR > 0 {
 		// read directory
 		f, err := c9.FOpenObject(fid, warp9.OREAD)
@@ -128,7 +126,6 @@ func cmdls(c9 *warp9.Clnt) {
 			return
 		}
 
-		mlog.Debug("fid opened; readdir:%v", fid)
 		for {
 			d, err := f.Readdir(0)
 			if d == nil || len(d) == 0 || err != warp9.Egood {

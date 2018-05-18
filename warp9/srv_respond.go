@@ -4,7 +4,7 @@
 
 package warp9
 
-// SrvRequest operations. This interface should be implemented by all file servers.
+// SrvRequest operations. This interface should be implemented by all object servers.
 // The operations correspond directly to most of the Warp9 message types.
 type SrvReqOps interface {
 	Attach(*SrvReq)

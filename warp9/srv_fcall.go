@@ -4,6 +4,22 @@
 
 package warp9
 
+// the set of methods in this file manage the common behavor each of the serving Warp9 message handling.
+//
+// FCall represents the message (see fcall.go)
+//
+// A warp9 server can be viewed as a set of layers.
+//  1. low level message parsing
+//  2. primitive message handling (this file)
+//  3. user message handling (the methods here inovke them)
+//  4. user objects handling
+//
+// Many of the message handling methods follow the form of:
+//  <preample-handler> --> <user-handler> --> <post-handler>
+//
+// this allows common book-keeping to be done on behalf of the user's handlers
+//
+
 func (srv *Srv) version(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
@@ -112,10 +128,10 @@ func (srv *Srv) attach(req *SrvReq) {
 		user = srv.Upool.User(tc.Uid)
 	}
 
-	//if user == nil {
-	//	req.RespondError(Enouser)
-	//	return
-	//}
+	if user == nil {
+		req.RespondError(Enouser)
+		return
+	}
 
 	req.Fid.User = user
 	if aop, ok := (srv.ops).(AuthOps); ok {
@@ -176,6 +192,11 @@ func (srv *Srv) walk(req *SrvReq) {
 	tc := req.Tc
 	fid := req.Fid
 
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
 	// we can't walk regular objects, only clone them
 	if len(tc.Wname) > 0 && (fid.Type&QTDIR) == 0 {
 		req.RespondError(Enotdir)
@@ -233,6 +254,12 @@ func (srv *Srv) walkPost(req *SrvReq) {
 func (srv *Srv) open(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
+
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
 	if fid.opened {
 		req.RespondError(Eopen)
 		return
@@ -256,6 +283,11 @@ func (srv *Srv) openPost(req *SrvReq) {
 func (srv *Srv) create(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
+
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
 	if fid.opened {
 		req.RespondError(Eopen)
 		return
@@ -286,6 +318,12 @@ func (srv *Srv) createPost(req *SrvReq) {
 func (srv *Srv) read(req *SrvReq) {
 	tc := req.Tc
 	fid := req.Fid
+
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge)
 		return
@@ -335,6 +373,12 @@ func (srv *Srv) readPost(req *SrvReq) {
 func (srv *Srv) write(req *SrvReq) {
 	fid := req.Fid
 	tc := req.Tc
+
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
 	if (fid.Type & QTAUTH) != 0 {
 		tc := req.Tc
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
@@ -367,6 +411,12 @@ func (srv *Srv) write(req *SrvReq) {
 
 func (srv *Srv) clunk(req *SrvReq) {
 	fid := req.Fid
+
+	if fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
 	if (fid.Type & QTAUTH) != 0 {
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
 			op.AuthDestroy(fid)
@@ -387,7 +437,15 @@ func (srv *Srv) clunkPost(req *SrvReq) {
 	}
 }
 
-func (srv *Srv) remove(req *SrvReq) { (req.Conn.Srv.ops).(SrvReqOps).Remove(req) }
+func (srv *Srv) remove(req *SrvReq) {
+
+	if req.Fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
+	(req.Conn.Srv.ops).(SrvReqOps).Remove(req)
+}
 
 func (srv *Srv) removePost(req *SrvReq) {
 	if req.Rc != nil && req.Fid != nil {
@@ -395,7 +453,15 @@ func (srv *Srv) removePost(req *SrvReq) {
 	}
 }
 
-func (srv *Srv) stat(req *SrvReq) { (req.Conn.Srv.ops).(SrvReqOps).Stat(req) }
+func (srv *Srv) stat(req *SrvReq) {
+
+	if req.Fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
+
+	(req.Conn.Srv.ops).(SrvReqOps).Stat(req)
+}
 
 func (srv *Srv) wstat(req *SrvReq) {
 	/*
@@ -413,6 +479,10 @@ func (srv *Srv) wstat(req *SrvReq) {
 			return
 		}
 	*/
+	if req.Fid == nil {
+		req.RespondError(Efidnil)
+		return
+	}
 
 	(req.Conn.Srv.ops).(SrvReqOps).Wstat(req)
 }

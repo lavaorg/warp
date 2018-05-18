@@ -54,26 +54,33 @@ func (*Serv) Walk(req *warp9.SrvReq) {
 		return
 	}
 	req.Newfid.Aux = item
-	req.RespondRwalk(&item.GetDir().Qid)
+	qid := item.GetQid()
+	req.RespondRwalk(&qid)
 }
 
 // Invoke the objects SetOpened(true) method.
 func (*Serv) Open(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	//tc := req.Tc
-	//mode := tc.Mode
+	reqmode := req.Tc.Mode
 
-	// check permissions
+	iounit, err := i.Open(reqmode)
+	if err != nil {
+		req.RespondError(fsRespondError(err, warp9.Eio))
+		return
+	}
 
-	i.SetOpened(true)
-
-	req.RespondRopen(&i.GetDir().Qid, 0)
+	req.RespondRopen(&i.GetDir().Qid, iounit)
 }
 
 // invoke the object's SetOpened(false) method.
 func (*Serv) Clunk(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
-	i.SetOpened(false)
+	err := i.Clunk()
+	if err != nil {
+		req.RespondError(fsRespondError(err, warp9.Eio))
+		return
+	}
 	req.RespondRclunk()
 }
 
@@ -91,7 +98,7 @@ func (*Serv) Create(req *warp9.SrvReq) {
 
 	tc := req.Tc
 
-	item, err := d.CreateItem(nil, tc.Name, tc.Perm, tc.Mode)
+	item, err := d.Create(tc.Name, tc.Perm, tc.Mode)
 	if err != nil {
 		req.RespondError(fsRespondError(err, warp9.Eio))
 		return
@@ -145,17 +152,29 @@ func (*Serv) Write(req *warp9.SrvReq) {
 
 // Not supported
 func (*Serv) Remove(req *warp9.SrvReq) {
-	req.RespondError(warp9.Enotimpl)
+	i := req.Fid.Aux.(Item)
+	err := i.Remove()
+	if err != nil {
+		req.RespondError(fsRespondError(err, warp9.Eio))
+		return
+	}
+	req.RespondRremove()
 	return
 }
 
 // Report the object's current status, reply with meta-data.
 func (*Serv) Stat(req *warp9.SrvReq) {
-	wo := req.Fid.Aux.(Item)
-	if wo == nil {
+	i := req.Fid.Aux.(Item)
+	if i == nil {
 		req.RespondError(warp9.Ebaduse)
+		return
 	}
-	req.RespondRstat(wo.GetDir())
+	dir, err := i.Stat()
+	if err != nil {
+		req.RespondError(fsRespondError(err, warp9.Eio))
+		return
+	}
+	req.RespondRstat(dir)
 	return
 }
 

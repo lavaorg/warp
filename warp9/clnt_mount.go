@@ -6,6 +6,8 @@ package warp9
 
 import (
 	"net"
+
+	"github.com/lavaorg/lrt/mlog"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
@@ -69,6 +71,7 @@ func Mount(ntype, addr, aname string, msize uint32, user User) (*Clnt, W9Err) {
 }
 
 func MountConn(c net.Conn, aname string, msize uint32, user User) (*Clnt, W9Err) {
+	mlog.Debug("MountConn:dest:%v", c.RemoteAddr().String())
 	clnt, err := Connect(c, msize+IOHDRSZ)
 	if err != Egood {
 		return nil, err

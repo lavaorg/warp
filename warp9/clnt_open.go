@@ -7,6 +7,8 @@ package warp9
 
 import (
 	"strings"
+
+	"github.com/lavaorg/lrt/mlog"
 )
 
 // Creates and opens a named object.
@@ -70,6 +72,7 @@ func (clnt *Clnt) FOpen(fid *Fid, mode uint8) W9Err {
 	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-IOHDRSZ {
 		fid.Iounit = clnt.Msize - IOHDRSZ
 	}
+	mlog.Debug("FOpen:msize:%v rc.Iounit:%v %v", clnt.Msize, rc.Iounit, fid)
 	fid.Mode = mode
 	return Egood
 }

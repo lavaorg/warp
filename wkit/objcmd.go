@@ -118,3 +118,7 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 
 	return count, nil
 }
+
+func (o *Command) Walked() (Item, error) {
+	return o, nil
+}

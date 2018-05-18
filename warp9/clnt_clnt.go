@@ -20,7 +20,7 @@ import (
 type Clnt struct {
 	sync.Mutex
 	Debuglevel int    // =0 don't print anything, >0 print Fcalls, >1 print raw packets
-	Msize      uint32 // Maximum size of the 9P messages
+	Msize      uint32 // Maximum size of the warp9 messages
 	Root       *Fid   // Fid that points to the rood directory
 	Id         string // Used when printing debug messages
 
@@ -371,6 +371,7 @@ func (clnt *Clnt) FidAlloc() *Fid {
 	fid := new(Fid)
 	fid.Fid = clnt.fidpool.getId()
 	fid.Clnt = clnt
+	fid.Iounit = clnt.Msize
 
 	return fid
 }
@@ -434,7 +435,7 @@ func (clnt *Clnt) logFcall(fc *Fcall) {
 	}
 }
 
-// FidFile returns a File that represents the given Fid, initially at the given
+// FidObject returns a Object that represents the given Fid, initially at the given
 // offset.
 func FidObject(fid *Fid, offset uint64) *Object {
 	return &Object{fid, offset}

@@ -10,27 +10,27 @@ package warp9
 type Fcall struct {
 	FcSize  uint32   // size of the message
 	Type    uint8    // message type
-	Fid     uint32   // file identifier
+	Fid     uint32   // object identifier
 	Tag     uint16   // message tag
 	Msize   uint32   // maximum message size (used by Tversion, Rversion)
 	Version string   // protocol version (used by Tversion, Rversion)
 	Oldtag  uint16   // tag of the message to flush (used by Tflush)
 	Error   W9Err    // error (used by Rerror)
-	Qid              // file Qid (used by Rauth, Rattach, Ropen, Rcreate, Rwalk)
+	Qid              // object Qid (used by Rauth, Rattach, Ropen, Rcreate, Rwalk)
 	Iounit  uint32   // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
 	Atok    uint32   // authentication fid (used by Tauth, Tattach)
 	Uid     uint32   // user uid (used by Tauth, Tattach)
 	Aname   string   // attach name (used by Tauth, Tattach)
-	Perm    uint32   // file permission (mode) (used by Tcreate)
-	Name    string   // file name (used by Tcreate)
+	Perm    uint32   // object permission (mode) (used by Tcreate)
+	Name    string   // object name (used by Tcreate)
 	Mode    uint8    // open mode (used by Topen, Tcreate)
-	Newfid  uint32   // the fid that represents the file walked to (used by Twalk)
+	Newfid  uint32   // the fid that represents the object walked to (used by Twalk)
 	Wname   []string // list of names to walk (used by Twalk)
-	//Wqid    []Qid    // list of Qids for the walked files (used by Rwalk)
-	Offset  uint64  // offset in the file to read/write from/to (used by Tread, Twrite)
+	//Wqid    []Qid    // list of Qids for the walked objects (used by Rwalk)
+	Offset  uint64  // offset in the object to read/write from/to (used by Tread, Twrite)
 	Count   uint32  // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
 	Data    []uint8 // data read/to-write (used by Rread, Twrite)
-	Dir             // file description (used by Rstat, Twstat)
+	Dir             // object description (used by Rstat, Twstat)
 	ExtAttr string  // used by Tcreate
 
 	Pkt []uint8 // raw packet data
