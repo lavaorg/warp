@@ -31,7 +31,7 @@ type Clnt struct {
 	done     chan bool
 	reqfirst *Req
 	reqlast  *Req
-	err      W9Err
+	err      error
 
 	reqchan chan *Req   //pool of avail req structs
 	tchan   chan *Fcall //pool of avail fcall structs
@@ -65,7 +65,7 @@ type Req struct {
 	Clnt       *Clnt
 	Tc         *Fcall
 	Rc         *Fcall
-	Err        W9Err
+	Err        *WarpError
 	Done       chan *Req
 	tag        uint16
 	prev, next *Req
@@ -81,7 +81,7 @@ var clnts *ClntList
 var DefaultDebuglevel int
 
 // rpc invocation with an existing Req structure
-func (clnt *Clnt) Rpcnb(r *Req) W9Err {
+func (clnt *Clnt) Rpcnb(r *Req) error {
 	var tag uint16
 
 	if r.Tc.Type == Tversion {
@@ -92,7 +92,7 @@ func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 
 	r.Tc.SetTag(tag)
 	clnt.Lock()
-	if clnt.err != Egood {
+	if clnt.err != nil {
 		clnt.Unlock()
 		return clnt.err
 	}
@@ -108,31 +108,33 @@ func (clnt *Clnt) Rpcnb(r *Req) W9Err {
 	clnt.Unlock()
 
 	clnt.reqout <- r
-	return Egood
+	return nil
 }
 
 // rpc invocation, creating a new Req structure
-func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err W9Err) {
+func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err error) {
 	r := clnt.ReqAlloc()
 	r.Tc = tc
 	r.Done = make(chan *Req)
 	err = clnt.Rpcnb(r)
-	if err != Egood {
+	if err != nil {
 		return
 	}
 
 	<-r.Done
 	rc = r.Rc
-	err = r.Err
+	if r.Err != nil {
+		err = r.Err //error{}(nil) is not equial to (*WarpError)(nil)
+	}
 	clnt.ReqFree(r)
 	return
 }
 
 func (clnt *Clnt) recv() {
-	var err W9Err
+	var err error
 	var buf []byte
 
-	err = Egood
+	err = nil
 	pos := 0
 	for {
 		// Connect can change the client Msize.
@@ -146,7 +148,7 @@ func (clnt *Clnt) recv() {
 
 		n, oerr := clnt.conn.Read(buf[pos:])
 		if oerr != nil || n == 0 {
-			err = Eio
+			err = &WarpError{Eio, ""}
 			clnt.Lock()
 			clnt.err = err
 			clnt.Unlock()
@@ -169,7 +171,7 @@ func (clnt *Clnt) recv() {
 
 			fc, err, fcsize := Unpack(buf)
 			clnt.Lock()
-			if err != Egood {
+			if err != nil {
 				clnt.err = err
 				clnt.conn.Close()
 				clnt.Unlock()
@@ -195,7 +197,7 @@ func (clnt *Clnt) recv() {
 			}
 
 			if r == nil {
-				clnt.err = Einval
+				clnt.err = &WarpError{Einval, ""}
 				clnt.conn.Close()
 				clnt.Unlock()
 				goto closed
@@ -217,12 +219,12 @@ func (clnt *Clnt) recv() {
 
 			if r.Tc.Type != r.Rc.Type-1 {
 				if r.Rc.Type != Rerror {
-					r.Err = Einval
+					r.Err = &WarpError{Einval, ""}
 					log.Println(fmt.Sprintf("TTT %v", r.Tc))
 					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
-					if r.Err == Egood {
-						r.Err = Einval
+					if r.Err == nil {
+						r.Err = &WarpError{Einval, ""}
 					}
 				}
 			}
@@ -244,12 +246,16 @@ closed:
 	r := clnt.reqfirst
 	clnt.reqfirst = nil
 	clnt.reqlast = nil
-	if err == Egood {
+	if err == nil {
 		err = clnt.err
 	}
 	clnt.Unlock()
+	werr, ok := err.(*WarpError)
+	if !ok {
+		werr = &WarpError{Eio, err.Error()}
+	}
 	for ; r != nil; r = r.next {
-		r.Err = err
+		r.Err = werr
 		if r.Done != nil {
 			r.Done <- r
 		}
@@ -344,18 +350,18 @@ func NewClnt(c net.Conn, msize uint32) *Clnt {
 // Establishes a new socket connection to the Warp9 server and creates
 // a client object for it. Negotiates the dialect and msize for the
 // connection. Returns a Clnt object, or Error.
-func Connect(c net.Conn, msize uint32) (*Clnt, W9Err) {
+func Connect(c net.Conn, msize uint32) (*Clnt, error) {
 	clnt := NewClnt(c, msize)
 
 	clntmsize := atomic.LoadUint32(&clnt.Msize)
 	tc := NewFcall(clntmsize)
 	err := tc.packTversion(clntmsize, Warp9Version)
-	if err != Egood {
+	if err != nil {
 		return nil, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != Egood {
+	if err != nil {
 		return nil, err
 	}
 
@@ -363,7 +369,7 @@ func Connect(c net.Conn, msize uint32) (*Clnt, W9Err) {
 		atomic.StoreUint32(&clnt.Msize, rc.Msize)
 	}
 
-	return clnt, Egood
+	return clnt, nil
 }
 
 // Creates a new Fid object for the client
@@ -412,7 +418,7 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	clnt.FreeFcall(req.Tc)
 	req.Tc = nil
 	req.Rc = nil
-	req.Err = Egood
+	req.Err = nil
 	req.Done = nil
 	req.next = nil
 	req.prev = nil

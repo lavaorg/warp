@@ -103,7 +103,7 @@ func (o *OneItem) Read(obuf []byte, off uint64, rcount uint32) (uint32, error) {
 	}
 	n := copy(obuf, o.Buffer[off:uint32(off)+count])
 	if uint32(n) != count {
-		return 0, warp9.Eio
+		return 0, warp9.Error(warp9.Eio)
 	}
 	mlog.Debug("d.Buffer:%v, obuf: %v, off:%v, rcount:%v\n", len(o.Buffer), len(obuf), off, count)
 	mlog.Debug("o:%T %p %v", o, o, o.Qid)
@@ -119,7 +119,7 @@ func (o *OneItem) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	ioff := int(off)
 	icnt := int(count)
 	if uint64(ioff) != off || uint32(icnt) != count {
-		return 0, warp9.Etoolarge
+		return 0, warp9.Error(warp9.Etoolarge)
 	}
 
 	// if append file always just append
@@ -143,7 +143,7 @@ func (o *OneItem) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 		return count, nil
 	}
 
-	return 0, warp9.Eio
+	return 0, warp9.Error(warp9.Eio)
 }
 
 // set item to open status
@@ -158,7 +158,7 @@ func (o *OneItem) Clunk() error {
 }
 
 func (o *OneItem) Remove() error {
-	return warp9.Enotimpl
+	return warp9.Error(warp9.Enotimpl)
 }
 
 func (o *OneItem) Stat() (*warp9.Dir, error) {
@@ -166,7 +166,7 @@ func (o *OneItem) Stat() (*warp9.Dir, error) {
 }
 
 func (o *OneItem) WStat(dir *warp9.Dir) error {
-	return warp9.Enotimpl
+	return warp9.Error(warp9.Enotimpl)
 }
 
 //
@@ -276,7 +276,7 @@ func (d *DirItem) Walk(path []string) (Item, error) {
 			item = d.Content[n]
 		}
 		if item == nil {
-			return nil, warp9.Enotexist
+			return nil, warp9.Error(warp9.Enotexist)
 		}
 		// let item know its walked to, it may return a clone
 		mlog.Debug("d.Walk: %T.%v", item, item)
@@ -293,12 +293,12 @@ func (d *DirItem) Walk(path []string) (Item, error) {
 	} else {
 		item := d.Content[elem]
 		if item == nil {
-			return nil, warp9.Enotexist
+			return nil, warp9.Error(warp9.Enotexist)
 		}
 		dir = item.IsDirectory()
 	}
 	if dir == nil {
-		return item, warp9.Enotdir
+		return item, warp9.Error(warp9.Enotdir)
 	}
 	// walk to next dir
 	mlog.Debug("next dir:%T.%v, path:%v", dir, dir.Name(), path)

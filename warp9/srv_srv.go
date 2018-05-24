@@ -227,14 +227,14 @@ func (req *SrvReq) Process() {
 		req.Fid = conn.FidGet(tc.Fid)
 		srv.Unlock()
 		if req.Fid == nil {
-			req.RespondError(Eunknownfid)
+			req.RespondError(&WarpError{Eunknownfid, ""})
 			return
 		}
 	}
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(Ebadw9msg)
+		req.RespondError(&WarpError{Ebadw9msg, ""})
 
 	case Tversion:
 		srv.version(req)

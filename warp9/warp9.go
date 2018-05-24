@@ -2,10 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE object.
 
-// The definitions and functions used to implement the Warp9 protocol
-// TODO.
-// All the packet conversion code in this file is crap and needs a rewrite.
 package warp9
+
+// definitions for the Warp9 protocol
 
 // Version
 const Warp9Version = "Warp9.0"
@@ -52,7 +51,7 @@ const (
 )
 
 const (
-	MSIZE   = 8192 + IOHDRSZ // default message size (1048576+IOHdrSz)
+	MSIZE   = 8192 + IOHDRSZ // default message size (data-size+IOHdrSz)
 	IOHDRSZ = 24             // the non-data size of the Twrite messages
 	PORT    = 9090           // default port for Warp9 object servers
 )

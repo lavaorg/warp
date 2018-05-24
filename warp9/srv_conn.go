@@ -146,7 +146,7 @@ func (conn *Conn) recv() {
 				break
 			}
 			fc, err, fcsize := Unpack(buf)
-			if err != Egood {
+			if err != nil {
 				log.Println(fmt.Sprintf("invalid packet : %v %v", err, buf))
 				conn.conn.Close()
 				conn.close()
@@ -277,7 +277,7 @@ func (conn *Conn) logFcall(fc *Fcall) {
 func (srv *Srv) StartNetListener(ntype, addr string) error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {
-		return W9Err(Eio)
+		return err
 	}
 
 	return srv.StartListener(l)
@@ -291,7 +291,7 @@ func (srv *Srv) StartListener(l net.Listener) error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			return W9Err(Eio)
+			return err
 		}
 
 		srv.NewConn(c)

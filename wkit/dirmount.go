@@ -45,7 +45,7 @@ type MountInfo struct {
 // namespace
 func MountPointDial(ntype, addr, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
 	mi := &MountInfo{aname, ntype, addr, msize, user, &net.Dialer{}, nil, nil}
-	var err warp9.W9Err
+	var err error
 	if msize == 0 {
 		msize = warp9.MSIZE
 	} else if msize < warp9.IOHDRSZ {
@@ -53,7 +53,7 @@ func MountPointDial(ntype, addr, aname string, msize uint32, user warp9.User) (*
 	}
 
 	mi.clnt, err = warp9.Mount(ntype, addr, aname, msize, user)
-	if err != warp9.Egood {
+	if err != nil {
 		return nil, err
 	}
 	mi.msize = mi.clnt.Msize
@@ -66,11 +66,11 @@ func MountPointDial(ntype, addr, aname string, msize uint32, user warp9.User) (*
 // to be placed in the local namespace.
 func MountPointDialer(dialer net.Dialer, ntype, addr, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
 	mi := &MountInfo{aname, ntype, addr, msize, user, &dialer, nil, nil}
-	var err warp9.W9Err
+	var err error
 
 	c, e := mi.dialer.Dial(ntype, addr)
 	if e != nil {
-		return nil, warp9.Edial
+		return nil, e
 	}
 
 	if msize == 0 {
@@ -80,7 +80,7 @@ func MountPointDialer(dialer net.Dialer, ntype, addr, aname string, msize uint32
 	}
 
 	mi.clnt, err = warp9.MountConn(c, aname, msize, user)
-	if err != warp9.Egood {
+	if err != nil {
 		return nil, err
 	}
 	mi.msize = mi.clnt.Msize
@@ -94,7 +94,7 @@ func MountPointDialer(dialer net.Dialer, ntype, addr, aname string, msize uint32
 // namespace
 func MountPointConn(conn net.Conn, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
 	mi := &MountInfo{aname, "", "", msize, user, &net.Dialer{}, conn, nil}
-	var err warp9.W9Err
+	var err error
 
 	if msize == 0 {
 		msize = warp9.MSIZE
@@ -103,7 +103,7 @@ func MountPointConn(conn net.Conn, aname string, msize uint32, user warp9.User) 
 	}
 
 	mi.clnt, err = warp9.MountConn(mi.conn, aname, msize, user)
-	if err != warp9.Egood {
+	if err != nil {
 		return nil, err
 	}
 	mi.msize = mi.clnt.Msize
@@ -133,7 +133,7 @@ func (mt *MountPoint) Name() string {
 func (mt *MountPoint) Create(name string, perm uint32, mode uint8) (Item, error) {
 
 	err := mt.mi.clnt.FCreate(mt.fid, name, perm, mode, "")
-	if err != warp9.Egood {
+	if err != nil {
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func (mt *MountPoint) Walk(path []string) (Item, error) {
 	newfid := mt.mi.clnt.FidAlloc()
 	newfid.User = mt.fid.User
 	qid, err := mt.mi.clnt.FWalk(mt.fid, newfid, path)
-	if err != warp9.Egood {
+	if err != nil {
 		return nil, err
 	}
 
@@ -184,7 +184,7 @@ func (mt *MountPoint) Parent() Directory {
 
 func (mt *MountPoint) SetParent(d Directory) error {
 	if mt.parent != nil {
-		return warp9.Einval
+		return warp9.Error(warp9.Einval)
 	}
 	mt.parent = d
 	return nil
@@ -201,7 +201,7 @@ func (mt *MountPoint) Walked() (Item, error) {
 func (mt *MountPoint) Read(obuf []byte, off uint64, rcount uint32) (uint32, error) {
 	mlog.Debug("mt.Read:off:%v, rcount:%v", off, rcount)
 	buf, err := mt.mi.clnt.Read(mt.fid, off, rcount)
-	if err != warp9.Egood {
+	if err != nil {
 		return 0, err
 	}
 	copy(obuf, buf)
@@ -219,7 +219,7 @@ func (mt *MountPoint) Write(ibuf []byte, off uint64, count uint32) (uint32, erro
 func (mt *MountPoint) Open(mode byte) (uint32, error) {
 	mlog.Debug("mt.Open:")
 	err := mt.mi.clnt.FOpen(mt.fid, mode)
-	if err != warp9.Egood {
+	if err != nil {
 		return 0, err
 	}
 	return mt.fid.Iounit, nil
@@ -228,7 +228,7 @@ func (mt *MountPoint) Open(mode byte) (uint32, error) {
 func (mt *MountPoint) Clunk() error {
 	mlog.Debug("mt.Clunk:%v, fid#:%v", mt.fid, mt.fid.Fid)
 	err := mt.mi.clnt.Clunk(mt.fid)
-	if err != warp9.Egood {
+	if err != nil {
 		return err
 	}
 	return nil
@@ -241,7 +241,7 @@ func (mt *MountPoint) Remove() error {
 func (mt *MountPoint) Stat() (*warp9.Dir, error) {
 	mlog.Info("mt.Stat:fid:%v", mt.fid)
 	d, e := mt.mi.clnt.FStat(mt.fid)
-	if e != warp9.Egood {
+	if e != nil {
 		return nil, e
 	}
 	return d, nil

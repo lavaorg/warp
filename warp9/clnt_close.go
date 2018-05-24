@@ -5,14 +5,14 @@
 package warp9
 
 // Clunks a fid. Returns nil if successful.
-func (clnt *Clnt) Clunk(fid *Fid) W9Err {
+func (clnt *Clnt) Clunk(fid *Fid) error {
 	if fid.Fid == NOFID {
-		return Efidnil
+		return &WarpError{Efidnil, ""}
 	}
 	if fid.walked {
 		tc := clnt.NewFcall()
 		err := tc.packTclunk(fid.Fid)
-		if err != Egood {
+		if err != nil {
 			return err
 		}
 
@@ -22,11 +22,11 @@ func (clnt *Clnt) Clunk(fid *Fid) W9Err {
 	clnt.fidpool.putId(fid.Fid)
 	fid.walked = false
 	fid.Fid = NOFID
-	return Egood
+	return nil
 }
 
 // Closes an object. Returns nil if successful.
-func (obj *Object) Close() W9Err {
+func (obj *Object) Close() error {
 	// Should we cancel all pending requests for the Object
 	return obj.Fid.Clnt.Clunk(obj.Fid)
 }

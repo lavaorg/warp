@@ -30,8 +30,11 @@ func main() {
 	warp9.DefaultDebuglevel = *dbglev
 
 	c9, err := warp9.Mount("tcp", *addr, *aname, 8192, user)
-	if err != warp9.Egood {
-		log.Fatalf("Error:%v:%v\n", err, err.String())
+	if err != nil {
+		werr := err.(*warp9.WarpError)
+		if werr != nil {
+			log.Fatalf("Error:%v\n", err)
+		}
 	}
 	defer c9.Clunk(c9.Root)
 
@@ -73,7 +76,7 @@ func usage() {
 
 func cmdcat(c9 *warp9.Clnt) {
 	o, err := c9.Open(flag.Arg(1), warp9.OREAD)
-	if err != warp9.Egood {
+	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
 	defer o.Close()
@@ -90,16 +93,16 @@ func cat(o *warp9.Object) {
 		if n == 0 {
 			break
 		}
-		if err != warp9.Egood {
+		if err != nil && err != warp9.WarpErrorEOF {
 			mlog.Error("Error reading:%v\n", err)
 		}
 		os.Stdout.Write(buf[0:n])
-		if err == warp9.Eeof {
+		if err == warp9.WarpErrorEOF {
 			break
 		}
 	}
 
-	if err != nil && err != warp9.Egood && err != warp9.Eeof {
+	if err != nil && err != warp9.WarpErrorEOF {
 		log.Fatalf("Error:%v\n", err)
 	}
 }
@@ -112,8 +115,8 @@ func cmdls(c9 *warp9.Clnt) {
 	}
 
 	fid, err := c9.Walk(n)
-	if err != warp9.Egood {
-		mlog.Error("error:%v", err)
+	if err != nil {
+		mlog.Error("error:%p, %T", err, err)
 		return
 	}
 	defer c9.Clunk(fid)
@@ -121,14 +124,14 @@ func cmdls(c9 *warp9.Clnt) {
 	if fid.Qid.Type&warp9.QTDIR > 0 {
 		// read directory
 		f, err := c9.FOpenObject(fid, warp9.OREAD)
-		if err != warp9.Egood {
+		if err != nil {
 			mlog.Error("error:%v", err)
 			return
 		}
 
 		for {
 			d, err := f.Readdir(0)
-			if d == nil || len(d) == 0 || err != warp9.Egood {
+			if d == nil || len(d) == 0 || err != nil {
 				break
 			}
 			for i := 0; i < len(d); i++ {
@@ -139,20 +142,20 @@ func cmdls(c9 *warp9.Clnt) {
 	} else {
 		// stat the file
 		d, err := c9.FStat(fid)
-		if err != warp9.Egood {
+		if err != nil {
 			log.Println("Error", err)
 			return
 		}
 		fmt.Printf("%v\n", d)
 	}
-	if err != warp9.Egood && err != warp9.Eeof {
+	if err != nil && err != warp9.WarpErrorEOF {
 		log.Fatal(err)
 	}
 }
 
 func cmdstat(c9 *warp9.Clnt) {
 	d, err := c9.Stat(flag.Arg(1))
-	if err != warp9.Egood {
+	if err != nil {
 		log.Println("Error", err)
 		return
 	}
@@ -175,7 +178,7 @@ func cmdstat(c9 *warp9.Clnt) {
 
 func cmdget(c9 *warp9.Clnt) {
 	data, qid, err := c9.Get(flag.Arg(1), 0)
-	if err != warp9.Egood {
+	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
 	if *verbose {
@@ -187,7 +190,7 @@ func cmdget(c9 *warp9.Clnt) {
 func cmdwrite(c9 *warp9.Clnt) {
 
 	o, err := c9.Open(flag.Arg(1), warp9.OWRITE)
-	if err != warp9.Egood {
+	if err != nil {
 		mlog.Error("Open Error:%v\n", err)
 		return
 	}
@@ -204,8 +207,8 @@ func cmdwrite(c9 *warp9.Clnt) {
 
 func cmdctl(c9 *warp9.Clnt) {
 	o, err := c9.Open(flag.Arg(1), warp9.ORDWR)
-	if err != warp9.Egood {
-		if err != warp9.Enotexist {
+	if err != nil {
+		if err != warp9.WarpErrorNOTEXIST {
 			mlog.Error("Error:%v\n", err)
 		} else {
 			fmt.Printf("object does not exist\n")

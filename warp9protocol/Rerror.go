@@ -8,10 +8,18 @@ package protocol
 /*
 Error: A reply only message for server to return an error for a request.
 
-	size[4] Rerror tag[2] ename[s]
+	**size[4] Rerror tag[2] ename[s]
 
-The Rerror message is used to return an error string describing the failure
-of a transaction. It replacess the Rmsg associated with the requesters Tmsg.
+	size[4] Rerror tag[2] errcode[2] ename[s]
+
+The Rerror message is used to return an error indicating the failure of a
+transaction. It replaces the Rmsg associated with the requestoers Tmsg.
+
+The errcode is a 16bit signed integer where <0 indicates a warp9 framework error code
+and >0 inidcates a user-server error code.
+
+Optionally the UTF-8 string 'ename' can be provided.
+If ename is present it will follow the UTF-8 Warp9 representiation. E.g.
 
 The tag parameter is that of the failing Tmsg request.
 

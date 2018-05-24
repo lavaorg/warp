@@ -90,14 +90,14 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	ioff := int(off)
 	icnt := int(count)
 	if uint64(ioff) != off || uint32(icnt) != count {
-		return 0, warp9.Etoolarge
+		return 0, warp9.Error(warp9.Etoolarge)
 	}
 
 	// split buffer into the command and the args
 	parts := bytes.SplitAfterN(ibuf, []byte{' '}, 2)
 
 	if len(parts) < 1 {
-		return 0, warp9.Eio
+		return 0, warp9.Error(warp9.Eio)
 	}
 	cmd := strings.TrimSpace(string(parts[0]))
 	args := []byte(nil)
@@ -109,7 +109,7 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	fct := o.Fcts[cmd]
 	if fct == nil {
 		mlog.Error("bad fct: [%v]", cmd)
-		return 0, warp9.Eio
+		return 0, warp9.Error(warp9.Eio)
 	}
 	e := fct(o.Ctx, o, cmd, args)
 	if e != nil {

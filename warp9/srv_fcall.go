@@ -25,12 +25,12 @@ func (srv *Srv) version(req *SrvReq) {
 	conn := req.Conn
 
 	if tc.Version != Warp9Version {
-		req.RespondError(Ebadver)
+		req.RespondError(&WarpError{Ebadver, ""})
 		return
 	}
 
 	if tc.Msize < IOHDRSZ {
-		req.RespondError(Emsize)
+		req.RespondError(&WarpError{Emsize, ""})
 		return
 	}
 
@@ -60,13 +60,13 @@ func (srv *Srv) auth(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 	if tc.Atok == NOTOK {
-		req.RespondError(Eunknownfid)
+		req.RespondError(&WarpError{Eunknownfid, ""})
 		return
 	}
 
 	req.Afid = conn.FidNew(tc.Atok)
 	if req.Afid == nil {
-		req.RespondError(Einuse)
+		req.RespondError(&WarpError{Einuse, ""})
 		return
 	}
 
@@ -76,7 +76,7 @@ func (srv *Srv) auth(req *SrvReq) {
 	}
 
 	if user == nil {
-		req.RespondError(Enouser)
+		req.RespondError(&WarpError{Enouser, ""})
 		return
 	}
 
@@ -85,13 +85,13 @@ func (srv *Srv) auth(req *SrvReq) {
 	if aop, ok := (srv.ops).(AuthOps); ok {
 		aqid, err := aop.AuthInit(req.Afid, tc.Aname)
 		if err != nil {
-			req.RespondError(Eauthinit)
+			req.RespondError(&WarpError{Eauthinit, ""})
 		} else {
 			aqid.Type |= QTAUTH // just in case
 			req.RespondRauth(aqid)
 		}
 	} else {
-		req.RespondError(Enoauth)
+		req.RespondError(&WarpError{Enoauth, ""})
 	}
 
 }
@@ -106,20 +106,20 @@ func (srv *Srv) attach(req *SrvReq) {
 	tc := req.Tc
 	conn := req.Conn
 	if tc.Fid == NOFID {
-		req.RespondError(Eunknownfid)
+		req.RespondError(&WarpError{Eunknownfid, ""})
 		return
 	}
 
 	req.Fid = conn.FidNew(tc.Fid)
 	if req.Fid == nil {
-		req.RespondError(Einuse)
+		req.RespondError(&WarpError{Einuse, ""})
 		return
 	}
 
 	if tc.Atok != NOTOK {
 		req.Afid = conn.FidGet(tc.Atok)
 		if req.Afid == nil {
-			req.RespondError(Eunknownfid)
+			req.RespondError(&WarpError{Eunknownfid, ""})
 		}
 	}
 
@@ -129,7 +129,7 @@ func (srv *Srv) attach(req *SrvReq) {
 	}
 
 	if user == nil {
-		req.RespondError(Enouser)
+		req.RespondError(&WarpError{Enouser, ""})
 		return
 	}
 
@@ -137,7 +137,7 @@ func (srv *Srv) attach(req *SrvReq) {
 	if aop, ok := (srv.ops).(AuthOps); ok {
 		err := aop.AuthCheck(req.Fid, req.Afid, tc.Aname)
 		if err != nil {
-			req.RespondError(Eauthchk)
+			req.RespondError(&WarpError{Eauthchk, ""})
 			return
 		}
 	}
@@ -193,13 +193,13 @@ func (srv *Srv) walk(req *SrvReq) {
 	fid := req.Fid
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
 	// we can't walk regular objects, only clone them
 	if len(tc.Wname) > 0 && (fid.Type&QTDIR) == 0 {
-		req.RespondError(Enotdir)
+		req.RespondError(&WarpError{Enotdir, ""})
 		return
 	}
 
@@ -207,24 +207,24 @@ func (srv *Srv) walk(req *SrvReq) {
 	if len(tc.Wname) == 1 {
 		p := tc.Wname[0]
 		if p == "." || p == ".." || p == "/" {
-			req.RespondError(Ename)
+			req.RespondError(&WarpError{Ename, ""})
 			return
 		}
 	}
 
 	//we can't walk open objects
 	if fid.opened {
-		req.RespondError(Eopen)
+		req.RespondError(&WarpError{Eopen, ""})
 		return
 	}
 
 	if req.Fid.Aux == nil {
-		req.RespondError(Efidnoaux)
+		req.RespondError(&WarpError{Efidnoaux, ""})
 	}
 	if tc.Fid != tc.Newfid {
 		req.Newfid = conn.FidNew(tc.Newfid)
 		if req.Newfid == nil {
-			req.RespondError(Einuse)
+			req.RespondError(&WarpError{Einuse, ""})
 			return
 		}
 
@@ -256,17 +256,17 @@ func (srv *Srv) open(req *SrvReq) {
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
 	if fid.opened {
-		req.RespondError(Eopen)
+		req.RespondError(&WarpError{Eopen, ""})
 		return
 	}
 
 	if (fid.Type&QTDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Eperm)
+		req.RespondError(&WarpError{Eperm, ""})
 		return
 	}
 
@@ -285,22 +285,22 @@ func (srv *Srv) create(req *SrvReq) {
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 	if fid.opened {
-		req.RespondError(Eopen)
+		req.RespondError(&WarpError{Eopen, ""})
 		return
 	}
 
 	if (fid.Type & QTDIR) == 0 {
-		req.RespondError(Enotdir)
+		req.RespondError(&WarpError{Enotdir, ""})
 		return
 	}
 
 	/* can't open directories for other than reading */
 	if (tc.Perm&DMDIR) != 0 && tc.Mode != OREAD {
-		req.RespondError(Eperm)
+		req.RespondError(&WarpError{Eperm, ""})
 		return
 	}
 
@@ -320,12 +320,12 @@ func (srv *Srv) read(req *SrvReq) {
 	fid := req.Fid
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Etoolarge)
+		req.RespondError(&WarpError{Etoolarge, ""})
 		return
 	}
 
@@ -333,21 +333,21 @@ func (srv *Srv) read(req *SrvReq) {
 
 		rc := req.Rc
 		err := rc.InitRread(tc.Count)
-		if err != Egood {
-			req.RespondError(err)
+		if err != nil {
+			req.RespondError(err.(*WarpError))
 			return
 		}
 
 		if op, ok := (req.Conn.Srv.ops).(AuthOps); ok {
 			n, e := op.AuthRead(fid, tc.Offset, rc.Data)
 			if e != nil {
-				req.RespondError(Eauthread)
+				req.RespondError(&WarpError{Eauthread, ""})
 				return
 			}
 			rc.SetRreadCount(uint32(n))
 			req.Respond()
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(&WarpError{Enotimpl, ""})
 		}
 
 		return
@@ -375,7 +375,7 @@ func (srv *Srv) write(req *SrvReq) {
 	tc := req.Tc
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
@@ -385,24 +385,24 @@ func (srv *Srv) write(req *SrvReq) {
 			n, err := op.AuthWrite(req.Fid, tc.Offset, tc.Data)
 			if err != nil {
 				//log err??
-				req.RespondError(Eauthwrite)
+				req.RespondError(&WarpError{Eauthwrite, ""})
 			} else {
 				req.RespondRwrite(uint32(n))
 			}
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(&WarpError{Enotimpl, ""})
 		}
 
 		return
 	}
 
 	if !fid.opened || (fid.Type&QTDIR) != 0 || (fid.Omode&3) == OREAD {
-		req.RespondError(Ebaduse)
+		req.RespondError(&WarpError{Ebaduse, ""})
 		return
 	}
 
 	if tc.Count+IOHDRSZ > req.Conn.Msize {
-		req.RespondError(Etoolarge)
+		req.RespondError(&WarpError{Etoolarge, ""})
 		return
 	}
 
@@ -413,7 +413,7 @@ func (srv *Srv) clunk(req *SrvReq) {
 	fid := req.Fid
 
 	if fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
@@ -422,7 +422,7 @@ func (srv *Srv) clunk(req *SrvReq) {
 			op.AuthDestroy(fid)
 			req.RespondRclunk()
 		} else {
-			req.RespondError(Enotimpl)
+			req.RespondError(&WarpError{Enotimpl, ""})
 		}
 
 		return
@@ -440,7 +440,7 @@ func (srv *Srv) clunkPost(req *SrvReq) {
 func (srv *Srv) remove(req *SrvReq) {
 
 	if req.Fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
@@ -456,7 +456,7 @@ func (srv *Srv) removePost(req *SrvReq) {
 func (srv *Srv) stat(req *SrvReq) {
 
 	if req.Fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 
@@ -480,7 +480,7 @@ func (srv *Srv) wstat(req *SrvReq) {
 		}
 	*/
 	if req.Fid == nil {
-		req.RespondError(Efidnil)
+		req.RespondError(&WarpError{Efidnil, ""})
 		return
 	}
 

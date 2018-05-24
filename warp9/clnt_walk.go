@@ -6,32 +6,34 @@ package warp9
 
 import (
 	"strings"
+
+	"github.com/lavaorg/lrt/mlog"
 )
 
 // Starting from the object associated with fid, walks all wnames in
 // sequence and associates the resulting object with newfid. If no wnames
 // were walked successfully, an Error is returned. Otherwise a Qid for the
 // object represented by the last wname is returned.
-func (clnt *Clnt) FWalk(fid *Fid, newfid *Fid, wnames []string) (*Qid, W9Err) {
+func (clnt *Clnt) FWalk(fid *Fid, newfid *Fid, wnames []string) (*Qid, error) {
 	tc := clnt.NewFcall()
 	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
-	if err != Egood {
+	if err != nil {
 		return nil, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != Egood {
+	if err != nil {
 		return nil, err
 	}
 
 	newfid.walked = true
-	return &rc.Qid, Egood
+	return &rc.Qid, nil
 }
 
 // Walks to a named object. Returns a Fid associated with the object,
 // or an Error.
-func (clnt *Clnt) Walk(path string) (*Fid, W9Err) {
-	var err W9Err = Egood
+func (clnt *Clnt) Walk(path string) (*Fid, error) {
+	var err error = nil
 
 	var i, m int
 	for i = 0; i < len(path); i++ {
@@ -66,13 +68,15 @@ func (clnt *Clnt) Walk(path string) (*Fid, W9Err) {
 
 		tc := clnt.NewFcall()
 		err = tc.packTwalk(fid.Fid, newfid.Fid, wnames[0:n])
-		if err != Egood {
+		if err != nil {
+			mlog.Debug("err=%T,%v,%p,%t,%t", err, err, err, (err != nil), (err == nil))
 			goto error
 		}
 
 		var rc *Fcall
 		rc, err = clnt.Rpc(tc)
-		if err != Egood {
+		if err != nil {
+			mlog.Debug("(rpc)err=%T,%v", err, err)
 			goto error
 		}
 
@@ -86,7 +90,7 @@ func (clnt *Clnt) Walk(path string) (*Fid, W9Err) {
 		}
 	}
 
-	return newfid, Egood
+	return newfid, nil
 
 error:
 	clnt.Clunk(newfid)

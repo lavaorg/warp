@@ -1,4 +1,5 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
+// Portions: Copyright 2018 Larry Rau. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,9 @@ package warp9
 
 import "fmt"
 
+// functions to help print human readable forms of structures and warp9 messages/data
+
+// Convert the Warp9 Object permission word encoding to a string
 func PermToString(perm uint32) string {
 	ret := ""
 
@@ -49,6 +53,7 @@ func p2str(a uint32) string {
 	return string(buf)
 }
 
+// Convert a Qid structure to a string form suitable for display.
 func (qid *Qid) String() string {
 	b := ""
 	if qid.Type == 0 {
@@ -75,6 +80,7 @@ func (qid *Qid) String() string {
 	return fmt.Sprintf("(%s.%x.%x)", b, qid.Version, qid.Path)
 }
 
+// Convert a Dir structure to a string suitable for display
 func (d *Dir) String() string {
 	ret := fmt.Sprintf("%s %s [%d:%d:%d] %d Q", PermToString(d.Mode), d.Name, d.Uid, d.Gid, d.Muid, d.Length)
 	ret += d.Qid.String() + " "
@@ -83,11 +89,13 @@ func (d *Dir) String() string {
 	return ret
 }
 
+// Convert a Fid structure to a string suitable for display
 func (f *Fid) String() string {
 	ret := fmt.Sprintf("fid[%d] qid:%v, iounit:%v, walked:%v", f.Fid, f.Qid, f.Iounit, f.walked)
 	return ret
 }
 
+// Convert an Fcall message structure to a string suitable for display
 func (fc *Fcall) String() string {
 	ret := ""
 

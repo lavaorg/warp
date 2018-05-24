@@ -17,22 +17,22 @@ func PackDir(d *Dir) []byte {
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackDir(buf []byte) (d *Dir, b []byte, amt int, err W9Err) {
+func UnpackDir(buf []byte) (d *Dir, b []byte, amt int, err error) {
 	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
 
 	if len(buf) < sz {
 		//log:?? fmt.Sprintf("short buffer: Need %d and have %v", sz, len(buf))
-		return nil, nil, 0, Einval
+		return nil, nil, 0, &WarpError{Einval, ""}
 	}
 	d = new(Dir)
 	b, err = gstat(buf, d)
-	if err != Egood {
+	if err != nil {
 		return nil, nil, 0, err
 	}
 
-	return d, b, len(buf) - len(b), Egood
+	return d, b, len(buf) - len(b), nil
 
 }
 
@@ -111,8 +111,13 @@ func gint64(buf []byte) (uint64, []byte) {
 		buf[8:]
 }
 
-func gerr(buf []byte) (W9Err, []byte) {
-	return W9Err(uint16(buf[0]) | (uint16(buf[1]) << 8)), buf[2:]
+func gerr(buf []byte) (*WarpError, []byte) {
+	var e WarpError
+	var b []byte
+	e.errcode = (int16(buf[0]) | (int16(buf[1]) << 8))
+	e.optmsg, b = gstr(buf[2:])
+
+	return &e, b
 }
 
 func gstr(buf []byte) (string, []byte) {
@@ -139,7 +144,7 @@ func gqid(buf []byte, qid *Qid) []byte {
 	return buf
 }
 
-func gstat(buf []byte, d *Dir) ([]byte, W9Err) {
+func gstat(buf []byte, d *Dir) ([]byte, error) {
 	d.DirSize, buf = gint16(buf)
 	buf = gqid(buf, &d.Qid)
 	d.Mode, buf = gint32(buf)
@@ -149,24 +154,24 @@ func gstat(buf []byte, d *Dir) ([]byte, W9Err) {
 	d.Name, buf = gstr(buf)
 	if buf == nil {
 		//s := fmt.Sprintf("Buffer too short for basic 9p: need %d, have %d", 49, sz)
-		return nil, Ebufsz
+		return nil, &WarpError{Ebufsz, ""}
 	}
 
 	d.Uid, buf = gint32(buf)
 	if buf == nil {
-		return nil, Ebaduid
+		return nil, &WarpError{Ebaduid, "buf"}
 	}
 	d.Gid, buf = gint32(buf)
 	if buf == nil {
-		return nil, Ebaduid
+		return nil, &WarpError{Ebaduid, "gid"}
 	}
 
 	d.Muid, buf = gint32(buf)
 	if buf == nil {
-		return nil, Ebaduid
+		return nil, &WarpError{Ebaduid, "muid"}
 	}
 
-	return buf, Egood
+	return buf, nil
 }
 
 func pint8(val uint8, buf []byte) []byte {
@@ -208,10 +213,12 @@ func pint64(val uint64, buf []byte) []byte {
 	return buf[8:]
 }
 
-func perr(val W9Err, buf []byte) []byte {
-	buf[0] = uint8(val)
-	buf[1] = uint8(val >> 8)
-	return buf[2:]
+//TODO: if empty optmsg then don't send the size uint16 either
+func perr(val *WarpError, buf []byte) []byte {
+	buf[0] = uint8(val.errcode)
+	buf[1] = uint8(val.errcode >> 8)
+	buf = pstr(val.optmsg, buf[2:])
+	return buf
 }
 
 func pstr(val string, buf []byte) []byte {

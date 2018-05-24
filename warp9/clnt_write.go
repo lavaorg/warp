@@ -13,12 +13,12 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, error) {
 
 	tc := clnt.NewFcall()
 	err := tc.packTwrite(fid.Fid, offset, uint32(len(data)), data)
-	if err != Egood {
+	if err != nil {
 		return 0, err
 	}
 
 	rc, err := clnt.Rpc(tc)
-	if err != Egood {
+	if err != nil {
 		return 0, err
 	}
 
@@ -49,7 +49,7 @@ func (obj *Object) Writen(buf []byte, offset uint64) (int, error) {
 	ret := 0
 	for len(buf) > 0 {
 		n, err := obj.WriteAt(buf, int64(offset))
-		if err != Egood {
+		if err != nil {
 			return ret, err
 		}
 

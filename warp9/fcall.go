@@ -8,30 +8,29 @@ package warp9
 
 // Fcall represents a Warp9 message. Not all fields are used in all messages.
 type Fcall struct {
-	FcSize  uint32   // size of the message
-	Type    uint8    // message type
-	Fid     uint32   // object identifier
-	Tag     uint16   // message tag
-	Msize   uint32   // maximum message size (used by Tversion, Rversion)
-	Version string   // protocol version (used by Tversion, Rversion)
-	Oldtag  uint16   // tag of the message to flush (used by Tflush)
-	Error   W9Err    // error (used by Rerror)
-	Qid              // object Qid (used by Rauth, Rattach, Ropen, Rcreate, Rwalk)
-	Iounit  uint32   // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
-	Atok    uint32   // authentication fid (used by Tauth, Tattach)
-	Uid     uint32   // user uid (used by Tauth, Tattach)
-	Aname   string   // attach name (used by Tauth, Tattach)
-	Perm    uint32   // object permission (mode) (used by Tcreate)
-	Name    string   // object name (used by Tcreate)
-	Mode    uint8    // open mode (used by Topen, Tcreate)
-	Newfid  uint32   // the fid that represents the object walked to (used by Twalk)
-	Wname   []string // list of names to walk (used by Twalk)
-	//Wqid    []Qid    // list of Qids for the walked objects (used by Rwalk)
-	Offset  uint64  // offset in the object to read/write from/to (used by Tread, Twrite)
-	Count   uint32  // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
-	Data    []uint8 // data read/to-write (used by Rread, Twrite)
-	Dir             // object description (used by Rstat, Twstat)
-	ExtAttr string  // used by Tcreate
+	FcSize  uint32     // size of the message
+	Type    uint8      // message type
+	Fid     uint32     // object identifier
+	Tag     uint16     // message tag
+	Msize   uint32     // maximum message size (used by Tversion, Rversion)
+	Version string     // protocol version (used by Tversion, Rversion)
+	Oldtag  uint16     // tag of the message to flush (used by Tflush)
+	Error   *WarpError // error (used by Rerror)
+	Qid                // object Qid (used by Rauth, Rattach, Ropen, Rcreate, Rwalk)
+	Iounit  uint32     // maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
+	Atok    uint32     // authentication fid (used by Tauth, Tattach)
+	Uid     uint32     // user uid (used by Tauth, Tattach)
+	Aname   string     // attach name (used by Tauth, Tattach)
+	Perm    uint32     // object permission (mode) (used by Tcreate)
+	Name    string     // object name (used by Tcreate)
+	Mode    uint8      // open mode (used by Topen, Tcreate)
+	Newfid  uint32     // the fid that represents the object walked to (used by Twalk)
+	Wname   []string   // list of names to walk (used by Twalk)
+	Offset  uint64     // offset in the object to read/write from/to (used by Tread, Twrite)
+	Count   uint32     // number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
+	Data    []uint8    // data read/to-write (used by Rread, Twrite)
+	Dir                // object description (used by Rstat, Twstat)
+	ExtAttr string     // used by Tcreate
 
 	Pkt []uint8 // raw packet data
 	Buf []uint8 // buffer to put the raw data in
@@ -51,10 +50,10 @@ func (fc *Fcall) SetTag(tag uint16) {
 	pint16(tag, fc.Pkt[5:])
 }
 
-func (fc *Fcall) packCommon(size int, id uint8) ([]byte, W9Err) {
+func (fc *Fcall) packCommon(size int, id uint8) ([]byte, error) {
 	size += fixedFcsz /* size[4] id[1] tag[2] */
 	if len(fc.Buf) < int(size) {
-		return nil, Ebufsz
+		return nil, &WarpError{Ebufsz, ""}
 	}
 
 	fc.FcSize = uint32(size)
@@ -66,17 +65,17 @@ func (fc *Fcall) packCommon(size int, id uint8) ([]byte, W9Err) {
 	p = pint16(NOTAG, p)
 	fc.Pkt = fc.Buf[0:size]
 
-	return p, Egood
+	return p, nil
 }
 
 // Creates a Fcall value from the on-the-wire representation.
 // Returns the unpacked message,
 // error and how many bytes from the buffer were used by the message.
-func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
+func Unpack(buf []byte) (fc *Fcall, err error, fcsz int) {
 	var m uint16
 
 	if len(buf) < fixedFcsz {
-		return nil, Ebufsz, 0
+		return nil, &WarpError{Ebufsz, ""}, 0
 	}
 
 	fc = new(Fcall)
@@ -91,7 +90,7 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 
 	if int(fc.FcSize) > len(buf) || fc.FcSize < fixedFcsz {
 		return nil,
-			Ebufsz,
+			&WarpError{Ebufsz, ""},
 			0
 	}
 
@@ -99,7 +98,7 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 	fc.Pkt = buf[0:fc.FcSize]
 	fcsz = int(fc.FcSize) //lr this seems to be truncating...
 	if fc.Type < Tversion || fc.Type >= Tlast {
-		return nil, Ebadmsgid, 0
+		return nil, &WarpError{Ebadmsgid, ""}, 0
 	}
 
 	var sz uint32
@@ -109,10 +108,10 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 		goto szerror
 	}
 
-	err = Egood
+	err = nil
 	switch fc.Type {
 	default:
-		return nil, Ebadmsgid, 0
+		return nil, &WarpError{Ebadmsgid, ""}, 0
 
 	case Tversion, Rversion:
 		fc.Msize, p = gint32(p)
@@ -153,9 +152,9 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 		}
 
 	case Rerror:
-		var ecode W9Err
-		ecode, p = gerr(p) //gstr(p)
-		fc.Error = ecode
+		var werr *WarpError
+		werr, p = gerr(p) //gstr(p)
+		fc.Error = werr
 		if p == nil {
 			goto szerror
 		}
@@ -232,7 +231,7 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 	case Rstat:
 		m, p = gint16(p)
 		p, err = gstat(p, &fc.Dir)
-		if err != Egood {
+		if err != nil {
 			return nil, err, 0
 		}
 
@@ -251,5 +250,5 @@ func Unpack(buf []byte) (fc *Fcall, err W9Err, fcsz int) {
 	return
 
 szerror:
-	return nil, Ebadmsgsz, 0
+	return nil, &WarpError{Ebadmsgsz, ""}, 0
 }

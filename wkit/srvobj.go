@@ -17,7 +17,7 @@ import (
 //
 func (srv *Serv) Attach(req *warp9.SrvReq) {
 	if req.Afid != nil {
-		req.RespondError(warp9.Enoauth)
+		req.RespondError(warp9.Error(warp9.Enoauth))
 		return
 	}
 	//tc := req.Tc
@@ -38,11 +38,11 @@ func (*Serv) Flush(req *warp9.SrvReq) {}
 func (*Serv) Walk(req *warp9.SrvReq) {
 	d, ok := req.Fid.Aux.(Directory)
 	if !ok {
-		req.RespondError(warp9.Enotdir)
+		req.RespondError(warp9.Error(warp9.Enotdir))
 		return
 	}
 	if d == nil {
-		req.RespondError(warp9.Ebaduse)
+		req.RespondError(warp9.Error(warp9.Ebaduse))
 		return
 	}
 
@@ -50,7 +50,7 @@ func (*Serv) Walk(req *warp9.SrvReq) {
 
 	item, err := d.Walk(tc.Wname)
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Enoent))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Enoent)))
 		return
 	}
 	req.Newfid.Aux = item
@@ -66,7 +66,7 @@ func (*Serv) Open(req *warp9.SrvReq) {
 
 	iounit, err := i.Open(reqmode)
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 
@@ -78,7 +78,7 @@ func (*Serv) Clunk(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	err := i.Clunk()
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 	req.RespondRclunk()
@@ -89,10 +89,10 @@ func (*Serv) Clunk(req *warp9.SrvReq) {
 func (*Serv) Create(req *warp9.SrvReq) {
 	d, ok := req.Fid.Aux.(Directory)
 	if !ok {
-		req.RespondError(warp9.Enotdir)
+		req.RespondError(warp9.Error(warp9.Enotdir))
 	}
 	if d == nil {
-		req.RespondError(warp9.Ebaduse)
+		req.RespondError(warp9.Error(warp9.Ebaduse))
 		return
 	}
 
@@ -100,7 +100,7 @@ func (*Serv) Create(req *warp9.SrvReq) {
 
 	item, err := d.Create(tc.Name, tc.Perm, tc.Mode)
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 
@@ -118,7 +118,7 @@ func (*Serv) Read(req *warp9.SrvReq) {
 
 	count, err := item.Read(rc.Data, tc.Offset, tc.Count)
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 
@@ -137,7 +137,7 @@ func (*Serv) Write(req *warp9.SrvReq) {
 
 	count, err := item.Write(tc.Data, tc.Offset, tc.Count)
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 
@@ -155,7 +155,7 @@ func (*Serv) Remove(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	err := i.Remove()
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 	req.RespondRremove()
@@ -166,12 +166,12 @@ func (*Serv) Remove(req *warp9.SrvReq) {
 func (*Serv) Stat(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	if i == nil {
-		req.RespondError(warp9.Ebaduse)
+		req.RespondError(warp9.Error(warp9.Ebaduse))
 		return
 	}
 	dir, err := i.Stat()
 	if err != nil {
-		req.RespondError(fsRespondError(err, warp9.Eio))
+		req.RespondError(fsRespondError(err, warp9.Error(warp9.Eio)))
 		return
 	}
 	req.RespondRstat(dir)
@@ -180,17 +180,17 @@ func (*Serv) Stat(req *warp9.SrvReq) {
 
 // not supported
 func (u *Serv) Wstat(req *warp9.SrvReq) {
-	req.RespondError(warp9.Enotimpl)
+	req.RespondError(warp9.Error(warp9.Enotimpl))
 	return
 }
 
 // helper functions
 
 // error helper
-func fsRespondError(err error, alterr warp9.W9Err) warp9.W9Err {
-	err9, ok := err.(warp9.W9Err)
+func fsRespondError(err error, alterr *warp9.WarpError) *warp9.WarpError {
+	werr, ok := err.(*warp9.WarpError)
 	if !ok {
-		err9 = alterr
+		werr = alterr
 	}
-	return err9
+	return werr
 }

@@ -9,15 +9,15 @@ package warp9
 // (this is the size of the iounit as would be returned by Open)
 // The associated Qid is also returned.
 // A suitable error code is returned if any error.
-func (clnt *Clnt) Get(path string, offset uint64) ([]byte, *Qid, W9Err) {
+func (clnt *Clnt) Get(path string, offset uint64) ([]byte, *Qid, error) {
 
 	obj, err := clnt.Open(path, OREAD)
-	if err != Egood {
+	if err != nil {
 		return nil, nil, err
 	}
 	qid := &obj.Fid.Qid //remember our qid
 	data, err := clnt.Read(obj.Fid, offset, obj.Fid.Iounit)
-	if err != Egood {
+	if err != nil {
 		return nil, qid, err
 	}
 	err = clnt.Clunk(obj.Fid)
