@@ -35,14 +35,12 @@ func ErrorMsg(code int16, msg string) *WarpError {
 // For framework errors the protocol errorcode is converted to string representation.
 // if an optional message was transmitted its appended to the standard message.
 func (e *WarpError) Error() string {
-	//	if e == nil {
-	//		return ErrStr[Egood]
-	//	}
 	if e.errcode < Egood && e.errcode > Emax {
+		ec := e.errcode * -1
 		if e.optmsg != "" {
-			return fmt.Sprintf("%s:%s", ErrStr[e.errcode], e.optmsg)
+			return fmt.Sprintf("%s:%s", ErrStr[ec], e.optmsg)
 		}
-		return ErrStr[e.errcode]
+		return ErrStr[ec]
 	}
 	return fmt.Sprintf("%d:%s", e.errcode, e.optmsg)
 }

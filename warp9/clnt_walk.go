@@ -18,12 +18,12 @@ func (clnt *Clnt) FWalk(fid *Fid, newfid *Fid, wnames []string) (*Qid, error) {
 	tc := clnt.NewFcall()
 	err := tc.packTwalk(fid.Fid, newfid.Fid, wnames)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	newfid.walked = true

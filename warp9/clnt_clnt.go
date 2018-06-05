@@ -12,6 +12,8 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+
+	"github.com/lavaorg/lrt/mlog"
 )
 
 // The Clnt type represents a Warp9 client. The client is connected to
@@ -80,6 +82,13 @@ type ClntList struct {
 var clnts *ClntList
 var DefaultDebuglevel int
 
+func (clnt *Clnt) Perr(err error) error {
+	if clnt.Debuglevel&DbgPrintAtErrMsg != 0 {
+		mlog.Emit(1, mlog.DEBUG, err.Error())
+	}
+	return err
+}
+
 // rpc invocation with an existing Req structure
 func (clnt *Clnt) Rpcnb(r *Req) error {
 	var tag uint16
@@ -114,6 +123,7 @@ func (clnt *Clnt) Rpcnb(r *Req) error {
 // rpc invocation, creating a new Req structure
 func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err error) {
 	r := clnt.ReqAlloc()
+	defer clnt.ReqFree(r)
 	r.Tc = tc
 	r.Done = make(chan *Req)
 	err = clnt.Rpcnb(r)
@@ -126,7 +136,7 @@ func (clnt *Clnt) Rpc(tc *Fcall) (rc *Fcall, err error) {
 	if r.Err != nil {
 		err = r.Err //error{}(nil) is not equial to (*WarpError)(nil)
 	}
-	clnt.ReqFree(r)
+	//rau clnt.ReqFree(r)
 	return
 }
 
@@ -357,12 +367,12 @@ func Connect(c net.Conn, msize uint32) (*Clnt, error) {
 	tc := NewFcall(clntmsize)
 	err := tc.packTversion(clntmsize, Warp9Version)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	if rc.Msize < atomic.LoadUint32(&clnt.Msize) {

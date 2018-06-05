@@ -133,8 +133,10 @@ type StatsOps interface {
 
 // Debug flags
 const (
-	DbgPrintFcalls  = (1 << iota) // print all 9P messages on stderr
-	DbgPrintPackets               // print the raw packets on stderr
-	DbgLogFcalls                  // keep the last N 9P messages (can be accessed over http)
-	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
+	DbgPrintFcalls   = (1 << iota) // print all 9P messages on stderr
+	DbgPrintPackets                // print the raw packets on stderr
+	DbgLogFcalls                   // keep the last N warp9 messages (tbd)
+	DbgLogPackets                  // keep the last N warp9 messages (tbd)
+	DbgPrintAtErrMsg               // print a line at err msg
+	DbgTraceAtErrMsg               // dump a stack trace at err msg (tbd)
 )

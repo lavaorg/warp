@@ -14,12 +14,12 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, error) {
 	tc := clnt.NewFcall()
 	err := tc.packTwrite(fid.Fid, offset, uint32(len(data)), data)
 	if err != nil {
-		return 0, err
+		return 0, clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
-		return 0, err
+		return 0, clnt.Perr(err)
 	}
 
 	return int(rc.Count), nil

@@ -58,16 +58,16 @@ func (clnt *Clnt) FOpen(fid *Fid, mode uint8) error {
 	tc := clnt.NewFcall()
 	err := tc.packTopen(fid.Fid, mode)
 	if err != nil {
-		return err
+		return clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		werr, ok := err.(*WarpError)
 		if ok && werr.errcode == Enotexist {
-			return WarpErrorNOTEXIST
+			return clnt.Perr(WarpErrorNOTEXIST)
 		}
-		return err
+		return clnt.Perr(err)
 	}
 
 	fid.Qid = rc.Qid
@@ -105,12 +105,12 @@ func (clnt *Clnt) FCreate(fid *Fid, name string, perm uint32, mode uint8, extatt
 	tc := clnt.NewFcall()
 	err := tc.packTcreate(fid.Fid, name, perm, mode, extattr)
 	if err != nil {
-		return err
+		return clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
-		return err
+		return clnt.Perr(err)
 	}
 
 	fid.Qid = rc.Qid

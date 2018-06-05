@@ -6,7 +6,6 @@ package warp9
 
 import (
 	"net"
-	//"github.com/lavaorg/lrt/mlog"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
@@ -16,12 +15,12 @@ func (clnt *Clnt) Auth(user User, aname string) (*Fid, error) {
 	tc := clnt.NewFcall()
 	err := tc.packTauth(fid.Fid, user.Id(), aname)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	_, err = clnt.Rpc(tc)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	fid.User = user
@@ -45,12 +44,12 @@ func (clnt *Clnt) Attach(afid *Fid, user User, aname string) (*Fid, error) {
 	tc := clnt.NewFcall()
 	err := tc.packTattach(fid.Fid, afno, user.Id(), aname)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
-		return nil, err
+		return nil, clnt.Perr(err)
 	}
 
 	fid.Qid = rc.Qid
