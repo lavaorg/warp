@@ -35,11 +35,11 @@ contain a directory entry, stat, laid out as follows:
     name[s]     -- object name; must be / if the object is the root directory of
                    the server.
 
-    uid[s]      -- owner name
+    uid[4]      -- owner name
 
-    gid[s]      -- group name
+    gid[4]      -- group name
 
-    muid[s]     -- name of the user who last modified the object.
+    muid[4]     -- name of the user who last modified the object.
 
 Integers in this encoding are in little-endian order (least significant byte
 first).
