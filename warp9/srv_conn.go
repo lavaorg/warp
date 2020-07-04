@@ -1,7 +1,7 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
+// Copyright 2019 RMG Technologies. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 package warp9
 
 import (
@@ -72,6 +72,7 @@ func (srv *Srv) newConnSetup(c net.Conn) *Conn {
 	return conn
 }
 
+// Async serve connection.
 func (srv *Srv) NewConn(c net.Conn) {
 	conn := srv.newConnSetup(c)
 	go conn.recv()
@@ -83,6 +84,24 @@ func (srv *Srv) NewConnWait(c net.Conn) {
 	conn := srv.newConnSetup(c)
 	go conn.recv()
 	conn.send()
+}
+
+// Initiate a network connection than serve the connection.
+// net,addr are same as used in net.Dial()
+// wait==true block and serve (see NewConnWait()), else return see NewConn())
+// return nil on success; else err is a Dial() error
+//
+func (srv *Srv) InitiateConn(nettyp, addr string, wait bool) error {
+	c, e := net.Dial(nettyp, addr)
+	if e != nil {
+		return e
+	}
+	if wait {
+		srv.NewConnWait(c)
+	} else {
+		srv.NewConn(c)
+	}
+	return nil
 }
 
 func (conn *Conn) close() {
@@ -166,7 +185,6 @@ func (conn *Conn) recv() {
 			req.Tc = fc
 			//			req.Rc = rc
 			if conn.Debuglevel > 0 {
-				conn.logFcall(req.Tc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
 					log.Println(">->", conn.Id, fmt.Sprint(req.Tc.Pkt))
 				}
@@ -223,7 +241,6 @@ func (conn *Conn) send() {
 			conn.npend--
 			conn.Unlock()
 			if conn.Debuglevel > 0 {
-				conn.logFcall(req.Rc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
 					log.Println("<-<", conn.Id, fmt.Sprint(req.Rc.Pkt))
 				}
@@ -256,24 +273,19 @@ func (conn *Conn) send() {
 	//panic("unreached")
 }
 
+// Return the remote address of the connection.
 func (conn *Conn) RemoteAddr() net.Addr {
 	return conn.conn.RemoteAddr()
 }
 
+// Return the local address of the connection.
 func (conn *Conn) LocalAddr() net.Addr {
 	return conn.conn.LocalAddr()
 }
 
-func (conn *Conn) logFcall(fc *Fcall) {
-	if conn.Debuglevel&DbgLogPackets != 0 {
-
-	}
-
-	if conn.Debuglevel&DbgLogFcalls != 0 {
-
-	}
-}
-
+// Start listening on the specified symbolic network type/address. This function
+// creates a net.Listen(ntype,addr) object and invokes StartListener() with it.
+//
 func (srv *Srv) StartNetListener(ntype, addr string) error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {

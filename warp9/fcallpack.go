@@ -18,12 +18,11 @@ func PackDir(d *Dir) []byte {
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
 func UnpackDir(buf []byte) (d *Dir, b []byte, amt int, err error) {
-	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
+	sz := 2 + 13 + 4 + /* size[2] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
-		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
+		2 + 4 + 4 + 4 /* name[s] uid[4] gid[4] muid[4] */
 
 	if len(buf) < sz {
-		//log:?? fmt.Sprintf("short buffer: Need %d and have %v", sz, len(buf))
 		return nil, nil, 0, &WarpError{Einval, ""}
 	}
 	d = new(Dir)
@@ -54,7 +53,7 @@ var minFcsize = [...]uint32{
 	14, /* Tattach fid[4] atok[4] uid[4] aname[s] */
 	13, /* Rattach qid[13] */
 	0,  /* Terror */
-	2,  /* Rerror errcode[2] */
+	2,  /* Rerror errcode[2] opt-str[s] */
 	2,  /* Tflush oldtag[2] */
 	0,  /* Rflush */
 	10, /* Twalk fid[4] newfid[4] nwname[2]... */
@@ -113,11 +112,13 @@ func gint64(buf []byte) (uint64, []byte) {
 
 func gerr(buf []byte) (*WarpError, []byte) {
 	var e WarpError
-	var b []byte
-	e.errcode = (int16(buf[0]) | (int16(buf[1]) << 8))
-	e.optmsg, b = gstr(buf[2:])
-
-	return &e, b
+	e.errcode = (int16(buf[0]) | (int16(buf[1]) << 8)) //signed 16bit
+	buf = buf[2:]
+	//optional str
+	if len(buf) > 0 {
+		e.optmsg, buf = gstr(buf)
+	}
+	return &e, buf
 }
 
 func gstr(buf []byte) (string, []byte) {
@@ -153,7 +154,6 @@ func gstat(buf []byte, d *Dir) ([]byte, error) {
 	d.Length, buf = gint64(buf)
 	d.Name, buf = gstr(buf)
 	if buf == nil {
-		//s := fmt.Sprintf("Buffer too short for basic 9p: need %d, have %d", 49, sz)
 		return nil, &WarpError{Ebufsz, ""}
 	}
 
@@ -217,7 +217,11 @@ func pint64(val uint64, buf []byte) []byte {
 func perr(val *WarpError, buf []byte) []byte {
 	buf[0] = uint8(val.errcode)
 	buf[1] = uint8(val.errcode >> 8)
-	buf = pstr(val.optmsg, buf[2:])
+	buf = buf[2:]
+	//optional str
+	if val.optmsg != "" {
+		buf = pstr(val.optmsg, buf)
+	}
 	return buf
 }
 

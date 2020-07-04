@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/lavaorg/lrt/mlog"
 	"github.com/lavaorg/warp/warp9"
 )
 
@@ -24,7 +23,7 @@ import (
 // Results of the command can be provided as a sequence of bytes.
 // The byte-sequence of the result can be read from the object.
 //
-// The commands acceppted can be provided as a map to the object
+// The commands accepted can be provided as a map to the object
 // following the form specified below (see .Fcts)
 //
 // An optional context, Ctx, can be provided and will be passed back
@@ -55,13 +54,13 @@ type CommandFct func(ctxt CmdCtx, cmd *Command, cmdname string, args []byte) err
 // fcts == nil will cause an empty mapp to be created
 func NewCommand(name string, fcts map[string]CommandFct, ctx CmdCtx) *Command {
 	var cmd Command
-	cmd.Name = name
+	cmd.OneItem = *NewItem(name)
 	if fcts == nil {
 		fcts = make(map[string]CommandFct)
 	}
 	cmd.Fcts = fcts
 	cmd.Ctx = ctx
-	cmd.Buffer = make([]byte, 20, 80)
+	cmd.SetBuffer(make([]byte, 20, 80))
 	return &cmd
 }
 
@@ -90,14 +89,14 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	ioff := int(off)
 	icnt := int(count)
 	if uint64(ioff) != off || uint32(icnt) != count {
-		return 0, warp9.Error(warp9.Etoolarge)
+		return 0, warp9.ErrorCode(warp9.Etoolarge)
 	}
 
 	// split buffer into the command and the args
 	parts := bytes.SplitAfterN(ibuf, []byte{' '}, 2)
 
 	if len(parts) < 1 {
-		return 0, warp9.Error(warp9.Eio)
+		return 0, warp9.ErrorCode(warp9.Eio)
 	}
 	cmd := strings.TrimSpace(string(parts[0]))
 	args := []byte(nil)
@@ -108,8 +107,8 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	// invoke the command if found
 	fct := o.Fcts[cmd]
 	if fct == nil {
-		mlog.Error("bad fct: [%v]", cmd)
-		return 0, warp9.Error(warp9.Eio)
+		warp9.Error("bad fct: [%v]", cmd)
+		return 0, warp9.ErrorCode(warp9.Eio)
 	}
 	e := fct(o.Ctx, o, cmd, args)
 	if e != nil {
@@ -117,6 +116,10 @@ func (o *Command) Write(ibuf []byte, off uint64, count uint32) (uint32, error) {
 	}
 
 	return count, nil
+}
+
+func (o *Command) Open(mode byte) (uint32, error) {
+	return 0, nil
 }
 
 func (o *Command) Walked() (Item, error) {

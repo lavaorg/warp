@@ -11,19 +11,19 @@ or more collections of objects arranged in a hierarchical namespace.
 A server responds to requests by clients to navigate the hierarchy, and to access,
 create, remove objects.
 
-The collection of objects can be highly dyanamic.  They can represent existing
+The collection of objects can be highly dynamic.  They can represent existing
 fixed resources or by synthesized on the fly based on when/how clients are
 traversing the namespace hierarchy or how they are interacting with existing objects.
 
-Accesing a remote set of resources will occurr over a bidirectional, reliable,
+Accessing a remote set of resources will occur over a bidirectional, reliable,
 communication channel. A resource server should generally assume multiple clients
 however, this does not preclude a low-end resource server from being single threaded
 
    Note: Warp9 is a direct decendent of the Plan 9 9P2000 protocol
 
-The Warp9 protocol, following its 9P ancessor, will follow a request/reply protocol.
+The Warp9 protocol, following its 9P ancestor, will follow a request/reply protocol.
 The 9P notation of describing requests (T-messags) and replies (R-messages) will
-be used. Each corresponing T-message and R-message pair comprises a transaction.
+be used. Each corresponding T-message and R-message pair comprises a transaction.
 
 Each message consists of a sequence of bytes. Two-, four-, and eight-byte fields
 hold unsigned integers represented in little-endian order (least significant byte
@@ -42,7 +42,7 @@ Each Warp9 message follows the structure of:
 size is a four-byte size field specifying the length in bytes
 of the complete message including the four bytes of the size field itself.
 
-msg is a single byte that enumerates the protocol message type.
+msg is a single byte that enumerates the protocol message type, like Twalk, Tread etc.
 
 tag is a two byte identifier, described below.
 
@@ -160,7 +160,7 @@ identify a “current object" on the server. Fids can be seen as client opaque
 handles to a remote object, regardless of that objects current disposition. That is
 a Fid does not imply the remote object is open for I/O operations. Fids can be used,
 for example, to examine directory objects, perform a stat on an object, etc. Fids
-are chosent by the client. Each connection has a single fid-space for the duration
+are chosen by the client. Each connection has a single fid-space for the duration
 of that connection.
 
 The fid supplied in an attach message will be taken by the server to refer to the
@@ -235,8 +235,8 @@ OBJECT TYPES
 Each object will have a specified, and well known, type. Currently there are
 two types of objects:
 
-   Directory -- a collection of objects. Can have decendents.
-   Entry -- a leaf object. Can not have decendents
+   Directory -- a collection of objects. Can have decendants.
+   Entry -- a leaf object. Can not have decendants
 
 Each object, regardless of type, can have the same base set of operations, while
 directories have a few extra operations that can be performed:

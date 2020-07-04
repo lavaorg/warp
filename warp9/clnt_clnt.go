@@ -7,13 +7,9 @@
 package warp9
 
 import (
-	"fmt"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
-
-	"github.com/lavaorg/lrt/mlog"
 )
 
 // The Clnt type represents a Warp9 client. The client is connected to
@@ -82,12 +78,6 @@ type ClntList struct {
 var clnts *ClntList
 var DefaultDebuglevel int
 
-func (clnt *Clnt) Perr(err error) error {
-	if clnt.Debuglevel&DbgPrintAtErrMsg != 0 {
-		mlog.Emit(1, mlog.DEBUG, err.Error())
-	}
-	return err
-}
 
 // rpc invocation with an existing Req structure
 func (clnt *Clnt) Rpcnb(r *Req) error {
@@ -191,11 +181,11 @@ func (clnt *Clnt) recv() {
 			if clnt.Debuglevel > 0 {
 				clnt.logFcall(fc)
 				if clnt.Debuglevel&DbgPrintPackets != 0 {
-					log.Println("}-}", clnt.Id, fmt.Sprint(fc.Pkt))
+					Info("}-}%v %v", clnt.Id, fc.Pkt)
 				}
 
 				if clnt.Debuglevel&DbgPrintFcalls != 0 {
-					log.Println("}}}", clnt.Id, fc.String())
+					Info("}}}%v %v", clnt.Id, fc.String())
 				}
 			}
 
@@ -230,8 +220,9 @@ func (clnt *Clnt) recv() {
 			if r.Tc.Type != r.Rc.Type-1 {
 				if r.Rc.Type != Rerror {
 					r.Err = &WarpError{Einval, ""}
-					log.Println(fmt.Sprintf("TTT %v", r.Tc))
-					log.Println(fmt.Sprintf("RRR %v", r.Rc))
+					Error("TTT:%v; RRR:%v", r.Tc, r.Rc)
+					//log.Println(fmt.Sprintf("TTT %v", r.Tc))
+					//log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
 					if r.Err == nil {
 						r.Err = &WarpError{Einval, ""}
@@ -300,11 +291,11 @@ func (clnt *Clnt) send() {
 			if clnt.Debuglevel > 0 {
 				clnt.logFcall(req.Tc)
 				if clnt.Debuglevel&DbgPrintPackets != 0 {
-					log.Println("{-{", clnt.Id, fmt.Sprint(req.Tc.Pkt))
+					Info("{-{%v %v", clnt.Id, req.Tc.Pkt)
 				}
 
 				if clnt.Debuglevel&DbgPrintFcalls != 0 {
-					log.Println("{{{", clnt.Id, req.Tc.String())
+					Info("{{{%v %v", clnt.Id, req.Tc.String())
 				}
 			}
 

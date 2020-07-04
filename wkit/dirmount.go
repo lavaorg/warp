@@ -7,8 +7,6 @@ import (
 	"net"
 
 	"github.com/lavaorg/warp/warp9"
-
-	"github.com/lavaorg/lrt/mlog"
 )
 
 type Mounter interface {
@@ -139,9 +137,12 @@ func (mt *MountPoint) Create(name string, perm uint32, mode uint8) (Item, error)
 
 	return mt, nil
 }
+func (mt *MountPoint) SetMode(mode uint32) Item {
+	mt.Mode = mode
+	return mt
+}
 
 func (mt *MountPoint) Walk(path []string) (Item, error) {
-	mlog.Info("mt.Walk:%v", path)
 	newfid := mt.mi.clnt.FidAlloc()
 	newfid.User = mt.fid.User
 	qid, err := mt.mi.clnt.FWalk(mt.fid, newfid, path)
@@ -156,7 +157,6 @@ func (mt *MountPoint) Walk(path []string) (Item, error) {
 	newmt = *mt
 	newmt.Qid = *qid
 	newmt.fid = newfid
-	mlog.Info("mt.Walk:newfid:%v", newfid)
 	return &newmt, nil
 }
 
@@ -171,20 +171,35 @@ func (mt *MountPoint) GetItem() Item {
 }
 
 func (mt *MountPoint) IsDirectory() Directory {
-
 	if mt.fid != nil && mt.fid.Qid.Type&warp9.QTDIR == 0 {
 		return nil
 	}
 	return mt
 }
 
+func (mt *MountPoint) Children() map[string]Item {
+	return nil
+}
+
+// mount point does not allow adding items or directories to it since it
+// is a proxy to another name space.
+func (mt *MountPoint) AddDirectory(newDir Directory) Directory {
+	return nil
+}
+
+func (mt *MountPoint) AddItem(item Item) Directory {
+	return nil
+}
+func (mt *MountPoint) RemoveItem(item Item) error {
+	return nil
+}
 func (mt *MountPoint) Parent() Directory {
 	return mt.parent
 }
 
 func (mt *MountPoint) SetParent(d Directory) error {
 	if mt.parent != nil {
-		return warp9.Error(warp9.Einval)
+		return warp9.ErrorCode(warp9.Einval)
 	}
 	mt.parent = d
 	return nil
@@ -199,7 +214,7 @@ func (mt *MountPoint) Walked() (Item, error) {
 }
 
 func (mt *MountPoint) Read(obuf []byte, off uint64, rcount uint32) (uint32, error) {
-	mlog.Debug("mt.Read:off:%v, rcount:%v", off, rcount)
+	warp9.Debug("mt.Read:off:%v, rcount:%v", off, rcount)
 	buf, err := mt.mi.clnt.Read(mt.fid, off, rcount)
 	if err != nil {
 		return 0, err
@@ -217,7 +232,7 @@ func (mt *MountPoint) Write(ibuf []byte, off uint64, count uint32) (uint32, erro
 }
 
 func (mt *MountPoint) Open(mode byte) (uint32, error) {
-	mlog.Debug("mt.Open:")
+	warp9.Debug("mt.Open:")
 	err := mt.mi.clnt.FOpen(mt.fid, mode)
 	if err != nil {
 		return 0, err
@@ -226,7 +241,7 @@ func (mt *MountPoint) Open(mode byte) (uint32, error) {
 }
 
 func (mt *MountPoint) Clunk() error {
-	mlog.Debug("mt.Clunk:%v, fid#:%v", mt.fid, mt.fid.Fid)
+	warp9.Debug("mt.Clunk:%v, fid#:%v", mt.fid, mt.fid.Fid)
 	err := mt.mi.clnt.Clunk(mt.fid)
 	if err != nil {
 		return err
@@ -235,11 +250,15 @@ func (mt *MountPoint) Clunk() error {
 }
 
 func (mt *MountPoint) Remove() error {
+	warp9.Debug("mt.Remove:%v, name:%s", mt.fid, mt.Name())
+	if err:= mt.Parent().RemoveItem(mt);err!=nil{
+		return err
+	}
 	return mt.mi.clnt.FRemove(mt.fid)
 }
 
 func (mt *MountPoint) Stat() (*warp9.Dir, error) {
-	mlog.Info("mt.Stat:fid:%v", mt.fid)
+	warp9.Info("mt.Stat:fid:%v", mt.fid)
 	d, e := mt.mi.clnt.FStat(mt.fid)
 	if e != nil {
 		return nil, e
