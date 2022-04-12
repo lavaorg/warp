@@ -118,7 +118,7 @@ func (fc *Fcall) String() string {
 	case Tflush:
 		ret = fmt.Sprintf("Tflush tag %d oldtag %d", fc.Tag, fc.Oldtag)
 	case Rerror:
-		ret = fmt.Sprintf("Rerror tag %d err %d '%s'", fc.Tag, fc.Error.errcode, fc.Error.optmsg)
+		ret = fmt.Sprintf("Rerror tag %d err %v", fc.Tag, fc.Error)
 	case Twalk:
 		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d [", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {

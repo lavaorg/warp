@@ -11,4 +11,3 @@ The fundamental paradigm of Warp9 is:
 - connect all resources via a simple remote access protocol over a reliable network
 
 The framework will provide a set of types, functions, daemons to allow the development of resource providers and resource consumers. 
-

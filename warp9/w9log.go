@@ -1,34 +1,36 @@
 // Copyright 2018 Larry Rau. All rights reserved
 // See Apache2 LICENSE
+
 package warp9
 
 // provide a logging interface that clients to the warp9 library can provide
 
 import (
-	"runtime"
-	"strings"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
+	"strings"
 	"time"
 )
+
 type LogFct func(template string, args ...interface{})
 type LogDbg func(on bool)
 
 var Debug LogFct = w9debug
 var Event LogFct = w9event
-var Info  LogFct = w9info
-var Stat  LogFct = w9stat
+var Info LogFct = w9info
+var Stat LogFct = w9stat
 var Error LogFct = w9error
 var Alarm LogFct = w9alarm
 
-var LogDebug LogDbg
+var LogDebug LogDbg = logdebug
 
-func SetLogging(d,i,e,s,err,a LogFct, ld LogDbg) {
+func SetLogging(d, i, e, s, err, a LogFct, ld LogDbg) {
 	Debug = d
-	Info  = i
+	Info = i
 	Event = e
-	Stat  = s
+	Stat = s
 	Error = err
 	Alarm = a
 	LogDebug = ld
@@ -98,7 +100,6 @@ func init() {
 	name = pathx[len(pathx)-1]
 	pid = strconv.Itoa(os.Getpid())
 }
-
 
 // Emit debug message if global debug flag set
 func w9debug(template string, args ...interface{}) {
@@ -200,12 +201,12 @@ func emit(sev uint8, file string, line int, m string) {
 	message = strings.Join([]string{
 		cmarker, sevstr[sev], pid, name, fileAndLine, timestamp,
 	}, cseparator)
-	
+
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
 		// Write message to stdout or stderr
-		fmt.Fprintln(stream, message+cseparator+line)
+		_, _ = fmt.Fprintln(stream, message+cseparator+line)
 	}
 }

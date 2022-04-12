@@ -7,7 +7,6 @@
 package warp9
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -173,9 +172,8 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Msize = MSIZE
 	}
 
-	fmt.Println("check for StatsOps")
 	if sop, ok := (interface{}(srv)).(StatsOps); ok {
-		fmt.Println("start stats")
+		Info("start stats")
 		sop.statsRegister()
 	}
 

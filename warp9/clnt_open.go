@@ -1,16 +1,15 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-// Copyright 2018 Larry Rau.
+// Copyright 2018,2022 Larry Rau.
 
 package warp9
 
 import (
 	"strings"
-	//"github.com/lavaorg/lrt/mlog"
 )
 
-// Creates and opens a named object.
+// Create creates and opens a named object.
 // Returns the object if the operation is successful, or an Error.
 func (clnt *Clnt) Create(path string, perm uint32, mode uint8) (*Object, error) {
 	n := strings.LastIndex(path, "/")
@@ -36,7 +35,7 @@ func (clnt *Clnt) Create(path string, perm uint32, mode uint8) (*Object, error) 
 	return &Object{fid, 0}, nil
 }
 
-// Opens a named object. Returns the opened object, or an Error.
+// Open opens a named object. Returns the opened object, or an Error.
 func (clnt *Clnt) Open(path string, mode uint8) (*Object, error) {
 	fid, err := clnt.Walk(path)
 	if err != nil {
@@ -52,7 +51,7 @@ func (clnt *Clnt) Open(path string, mode uint8) (*Object, error) {
 	return &Object{fid, 0}, nil
 }
 
-// Opens the object currently associated with the fid. Returns nil if
+// FOpen opens the object currently associated with the fid. Returns nil if
 // the operation is successful.
 func (clnt *Clnt) FOpen(fid *Fid, mode uint8) error {
 	tc := clnt.NewFcall()
@@ -79,7 +78,7 @@ func (clnt *Clnt) FOpen(fid *Fid, mode uint8) error {
 	return nil
 }
 
-// like FOpen but returns an Object in the open state. The expectation is
+// FOpenObject like FOpen but returns an Object in the open state. The expectation is
 // the fid was already the result of a walk.
 func (clnt *Clnt) FOpenObject(fid *Fid, mode uint8) (*Object, error) {
 	if fid == nil {
@@ -99,7 +98,7 @@ func (clnt *Clnt) FOpenObject(fid *Fid, mode uint8) (*Object, error) {
 
 }
 
-// Creates an object in the directory associated with the fid. Returns nil
+// FCreate creates an object in the directory associated with the fid. Returns nil
 // if the operation is successful.
 func (clnt *Clnt) FCreate(fid *Fid, name string, perm uint32, mode uint8, extattr string) error {
 	tc := clnt.NewFcall()

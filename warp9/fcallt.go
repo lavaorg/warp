@@ -5,8 +5,6 @@
 
 package warp9
 
-//import "github.com/lavaorg/lrt/mlog"
-
 // Create a Tversion message in the specified Fcall.
 func (fc *Fcall) packTversion(msize uint32, version string) error {
 	size := 4 + 2 + len(version) /* msize[4] version[s] */

@@ -25,7 +25,7 @@ type MountPoint struct {
 	fid    *warp9.Fid
 }
 
-// holder for the remote mount information
+// MountInfo holder for the remote mount information
 type MountInfo struct {
 	Aname  string      //mount point name
 	ntype  string      //network type, per net.Dial
@@ -38,7 +38,7 @@ type MountInfo struct {
 
 }
 
-// Attempt to establish a mount of a remote object server,
+// MountPointDial Attempt to establish a mount of a remote object server,
 // upon success return a valid local MountPoint to be placed in the local
 // namespace
 func MountPointDial(ntype, addr, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
@@ -59,7 +59,7 @@ func MountPointDial(ntype, addr, aname string, msize uint32, user warp9.User) (*
 	return mt, nil
 }
 
-// Attempt to establish a mount of a remote object serer, using the
+// MountPointDialer Attempt to establish a mount of a remote object serer, using the
 // Dialer attributes passed, upon success return a valid local MountPoint
 // to be placed in the local namespace.
 func MountPointDialer(dialer net.Dialer, ntype, addr, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
@@ -87,7 +87,7 @@ func MountPointDialer(dialer net.Dialer, ntype, addr, aname string, msize uint32
 	return mt, nil
 }
 
-// Use the provided established net.Conn to mount a remote object server,
+// MountPointConn Use the provided established net.Conn to mount a remote object server,
 // upon success return a valid local MountPoint to be placed in the local
 // namespace
 func MountPointConn(conn net.Conn, aname string, msize uint32, user warp9.User) (*MountPoint, error) {
@@ -137,9 +137,8 @@ func (mt *MountPoint) Create(name string, perm uint32, mode uint8) (Item, error)
 
 	return mt, nil
 }
-func (mt *MountPoint) SetMode(mode uint32) Item {
+func (mt *MountPoint) SetMode(mode uint32) {
 	mt.Mode = mode
-	return mt
 }
 
 func (mt *MountPoint) Walk(path []string) (Item, error) {
@@ -163,6 +162,7 @@ func (mt *MountPoint) Walk(path []string) (Item, error) {
 //
 // implement the Item interface
 //
+
 func (mt *MountPoint) GetDir() *warp9.Dir {
 	return &mt.Dir
 }
@@ -181,14 +181,14 @@ func (mt *MountPoint) Children() map[string]Item {
 	return nil
 }
 
-// mount point does not allow adding items or directories to it since it
+// AddDirectory mount point does not allow adding items or directories to it since it
 // is a proxy to another name space.
-func (mt *MountPoint) AddDirectory(newDir Directory) Directory {
-	return nil
+func (mt *MountPoint) AddDirectory(newDir Directory) {
+	return
 }
 
-func (mt *MountPoint) AddItem(item Item) Directory {
-	return nil
+func (mt *MountPoint) AddItem(item Item) {
+	return
 }
 func (mt *MountPoint) RemoveItem(item Item) error {
 	return nil
@@ -251,7 +251,7 @@ func (mt *MountPoint) Clunk() error {
 
 func (mt *MountPoint) Remove() error {
 	warp9.Debug("mt.Remove:%v, name:%s", mt.fid, mt.Name())
-	if err:= mt.Parent().RemoveItem(mt);err!=nil{
+	if err := mt.Parent().RemoveItem(mt); err != nil {
 		return err
 	}
 	return mt.mi.clnt.FRemove(mt.fid)
@@ -270,7 +270,7 @@ func (mt *MountPoint) WStat(dir *warp9.Dir) error {
 	return mt.mi.clnt.FWstat(mt.fid, dir)
 }
 
-// set the debug level for client actions to target object servers
+// Debug set the debug level for client actions to target object servers
 // -1=don't change, 0=off, >0=fcall, >1=raw msg bytes
 // return the previous state
 func (mt *MountPoint) Debug(level int) int {

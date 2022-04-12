@@ -6,7 +6,7 @@
 package protocol
 
 /*
-Attach: A client initiation of access to a resource server.
+Attach : A client initiation of access to a resource server.
 
     size[4] Tattach tag[2] fid[4] atok[4] uid[4] aname[s]
 
@@ -29,11 +29,11 @@ The uid is a int32 -- signed 32bit integer, little-endian, 2's compliment
 
 The atok field represents an authentication token for the session.  If the
 client does not wish to authenticate it should send a NOFID (uint32(~0) value.
-If the server requires authenticatio it will return an error and close the
+If the server requires authentication it will return an error and close the
 connection.
 
 The server's use of the authentication token is implementation specific. The
-authetnication token should be representativ of (connection, time, uname) at
+authentication token should be representative of (connection, time, uname) at
 the server's discrtion.
 
 How the client obtains a token is not specified in this protocol.

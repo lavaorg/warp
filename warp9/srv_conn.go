@@ -6,7 +6,6 @@ package warp9
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync"
 )
@@ -149,7 +148,7 @@ func (conn *Conn) recv() {
 		for pos > 4 {
 			sz, _ := gint32(buf)
 			if sz > conn.Msize {
-				log.Println("bad client connection: ", conn.conn.RemoteAddr())
+				Error("bad client connection: ", conn.conn.RemoteAddr())
 				conn.conn.Close()
 				conn.close()
 				return
@@ -166,7 +165,7 @@ func (conn *Conn) recv() {
 			}
 			fc, err, fcsize := Unpack(buf)
 			if err != nil {
-				log.Println(fmt.Sprintf("invalid packet : %v %v", err, buf))
+				Error(fmt.Sprintf("invalid packet : %v %v", err, buf))
 				conn.conn.Close()
 				conn.close()
 				return
@@ -186,11 +185,11 @@ func (conn *Conn) recv() {
 			//			req.Rc = rc
 			if conn.Debuglevel > 0 {
 				if conn.Debuglevel&DbgPrintPackets != 0 {
-					log.Println(">->", conn.Id, fmt.Sprint(req.Tc.Pkt))
+					Info(">-> %v %v", conn.Id, req.Tc.Pkt)
 				}
 
 				if conn.Debuglevel&DbgPrintFcalls != 0 {
-					log.Println(">>>", conn.Id, req.Tc.String())
+					Info(">>> %v %v", conn.Id, req.Tc.String())
 				}
 			}
 
@@ -242,11 +241,11 @@ func (conn *Conn) send() {
 			conn.Unlock()
 			if conn.Debuglevel > 0 {
 				if conn.Debuglevel&DbgPrintPackets != 0 {
-					log.Println("<-<", conn.Id, fmt.Sprint(req.Rc.Pkt))
+					Info("<-< %v %v", conn.Id, req.Rc.Pkt)
 				}
 
 				if conn.Debuglevel&DbgPrintFcalls != 0 {
-					log.Println("<<<", conn.Id, req.Rc.String())
+					Info("<<< %v %v", conn.Id, req.Rc.String())
 				}
 			}
 
@@ -254,7 +253,7 @@ func (conn *Conn) send() {
 				n, err := conn.conn.Write(buf)
 				if err != nil {
 					/* just close the socket, will get signal on conn.done */
-					log.Println("error while writing")
+					Error("error while writing")
 					conn.conn.Close()
 					break
 				}
