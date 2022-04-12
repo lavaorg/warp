@@ -16,14 +16,24 @@ import (
 
 const numDir = 20 //16384
 
-var addr = flag.String("addr", ":5640", "network address")
-var pipefsaddr = flag.String("pipefsaddr", ":5641", "pipefs network address")
-var debug = flag.Int("debug", 0, "print debug messages")
-var root = flag.String("root", "/", "root object server")
+var addr = flag.String("a", ":90009", "network address")
+var debug = flag.Int("d", 0, "print debug messages")
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	// spawn a server to test clients against
+	os.Exit(m.Run())
+}
 
 // Two objectss
 var testunpackbytes = []byte{
-	79, 0, 0, 0, 0, 0, 0, 0, 0, 228, 193, 233, 248, 44, 145, 3, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0, 47, 117, 180, 83, 102, 3, 0, 0, 0, 0, 0, 0, 6, 0, 112, 97, 115, 115, 119, 100, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 0, 0, 232, 3, 0, 0, 232, 3, 0, 0, 255, 255, 255, 255, 78, 0, 0, 0, 0, 0, 0, 0, 0, 123, 171, 233, 248, 42, 145, 3, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0, 41, 117, 180, 83, 195, 0, 0, 0, 0, 0, 0, 0, 5, 0, 104, 111, 115, 116, 115, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 0, 0, 232, 3, 0, 0, 232, 3, 0, 0, 255, 255, 255, 255,
+	52, 0,                             //DirSize
+	0x40,  0,0,0,0,  0,0,0,0,0,0,0,1,  //{QTAPPEND/*Qid.Type*/, 0/*Qid.Version*/, 1/*Qid.Path*/}
+	0,0,0,0x4,                         //mode
+	1,0,0,0,  2,0,0,0,               //atime, mtime 
+	7,0,0,0,0,0,0,0,                   //obj length:7
+	3,0, 97,98,99,                       //name: len + "abc"
+	0,0,0,1,  0,0,0,2, 0,0,0,3,        //owner:1 group:2  muid:3
 }
 
 func TestUnpackDir(t *testing.T) {
@@ -39,6 +49,10 @@ func TestUnpackDir(t *testing.T) {
 func TestAttachOpenReaddir1(t *testing.T) {
 	var err error
 	flag.Parse()
+
+	if testing.Short() {
+        t.Skip("skipping test in short mode.")
+    }
 
 	// assume a ufs server is running
 
@@ -103,6 +117,10 @@ func TestAttachOpenReaddir1(t *testing.T) {
 func TestAttachOpenReaddir2(t *testing.T) {
 	var err error
 	flag.Parse()
+
+	if testing.Short() {
+        t.Skip("skipping test in short mode.")
+    }
 
 	// assume a ufs server is running
 
@@ -181,7 +199,7 @@ func TestAttachOpenReaddir2(t *testing.T) {
 	}
 	i, amt, offset = 0, 0, 0
 	for i < numDir {
-		if d, err := dirobj.Readdir(numDir); err != Egood {
+		if d, err := dirobj.Readdir(numDir); err != nil {
 			t.Fatalf("%v", err)
 		} else {
 			i += len(d)
@@ -210,8 +228,7 @@ func TestAttachOpenReaddir2(t *testing.T) {
 			t.Logf("len(b) %v\n", len(b))
 			if d, b, amt, err = UnpackDir(b); err != nil {
 				// this error is expected ...
-				t.Logf("unpack failed (it's ok!). retry at offset %v\n",
-					offset)
+				t.Logf("unpack failed (it's ok!). retry at offset %v\n", offset)
 				break
 			} else {
 				t.Logf("d %v\n", d)
@@ -243,3 +260,9 @@ var f *Object
 var b = make([]byte, 1048576/8)
 
 // Not sure we want this, and the test has issues. Revive it if we ever find a use for it.
+
+
+
+func testServer() {
+
+}

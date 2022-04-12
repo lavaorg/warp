@@ -22,7 +22,7 @@ type WarpError struct {
 }
 
 // Create a new W9Err instance.
-func Error(code int16) *WarpError {
+func ErrorCode(code int16) *WarpError {
 	return &WarpError{code, ""}
 }
 

@@ -6,10 +6,6 @@
 // Fcall is the structure to hold contents for an on-the-wire message to/from a Warp9 server.
 package warp9
 
-import (
-	"github.com/lavaorg/lrt/mlog"
-)
-
 // Fcall represents a Warp9 message. Not all fields are used in all messages.
 type Fcall struct {
 	FcSize  uint32     // size of the message
@@ -120,7 +116,7 @@ func Unpack(buf []byte) (fc *Fcall, err error, fcsz int) {
 	case Tversion, Rversion:
 		fc.Msize, p = gint32(p)
 		fc.Version, p = gstr(p)
-		mlog.Debug("T/Rversion: fc:%v", fc)
+		Debug("T/Rversion: fc:%v", fc)
 		if p == nil {
 			goto szerror
 		}

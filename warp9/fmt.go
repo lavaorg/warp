@@ -107,8 +107,7 @@ func (fc *Fcall) String() string {
 	case Rversion:
 		ret = fmt.Sprintf("Rversion tag %d msize %d version '%s'", fc.Tag, fc.Msize, fc.Version)
 	case Tauth:
-		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' aname '%s'",
-			fc.Tag, fc.Atok, fc.Uid, fc.Aname)
+		ret = fmt.Sprintf("Tauth tag %d afid %d uname %x aname '%s'", fc.Tag, fc.Atok, fc.Uid, fc.Aname)
 	case Rauth:
 		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Rattach:
@@ -119,7 +118,7 @@ func (fc *Fcall) String() string {
 	case Tflush:
 		ret = fmt.Sprintf("Tflush tag %d oldtag %d", fc.Tag, fc.Oldtag)
 	case Rerror:
-		ret = fmt.Sprintf("Rerror tag %d err %d '%s'", fc.Tag, fc.Error, fc.Error)
+		ret = fmt.Sprintf("Rerror tag %d err %d '%s'", fc.Tag, fc.Error.errcode, fc.Error.optmsg)
 	case Twalk:
 		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d [", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {

@@ -6,8 +6,6 @@ package warp9
 
 import (
 	"strings"
-
-	"github.com/lavaorg/lrt/mlog"
 )
 
 // Starting from the object associated with fid, walks all wnames in
@@ -69,14 +67,14 @@ func (clnt *Clnt) Walk(path string) (*Fid, error) {
 		tc := clnt.NewFcall()
 		err = tc.packTwalk(fid.Fid, newfid.Fid, wnames[0:n])
 		if err != nil {
-			mlog.Debug("err=%T,%v,%p,%t,%t", err, err, err, (err != nil), (err == nil))
+			Debug("err=%T,%v,%p,%t,%t", err, err, err, (err != nil), (err == nil))
 			goto error
 		}
 
 		var rc *Fcall
 		rc, err = clnt.Rpc(tc)
 		if err != nil {
-			mlog.Debug("(rpc)err=%T,%v", err, err)
+			Debug("(rpc)err=%T,%v", err, err)
 			goto error
 		}
 
