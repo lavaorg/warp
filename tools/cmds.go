@@ -4,7 +4,6 @@
 package tools
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,11 +14,11 @@ import (
 	"github.com/lavaorg/warp/warp9"
 )
 
-
 var CmdVerbose bool = false
 
-func Cat(c9 *warp9.Clnt) {
-	o, err := c9.Open(flag.Arg(1), warp9.OREAD)
+// Cat open named object and write contents to stdout
+func Cat(c9 *warp9.Clnt, obj string) {
+	o, err := c9.Open(obj, warp9.OREAD)
 	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
@@ -28,7 +27,7 @@ func Cat(c9 *warp9.Clnt) {
 	cat(o)
 }
 
-// cat: copy full contents of object to stdardout
+// cat copy full contents of object to stdout
 func cat(o *warp9.Object) {
 
 	buf := make([]byte, 8192)
@@ -39,7 +38,7 @@ func cat(o *warp9.Object) {
 			break
 		}
 		if err != nil && err != warp9.WarpErrorEOF {
-			     warp9.Error("Error reading:%v\n", err)
+			warp9.Error("Error reading:%v\n", err)
 		}
 		os.Stdout.Write(buf[0:n])
 		if err == warp9.WarpErrorEOF {
@@ -52,20 +51,18 @@ func cat(o *warp9.Object) {
 	}
 }
 
-// ls: read contents of diretory.
-func Ls(c9 *warp9.Clnt) {
+// Ls read contents of diretory.
+func Ls(c9 *warp9.Clnt, obj string) {
 
-	n := flag.Arg(1)
-	if n == "." || n == "/" {
-		n = ""
+	if obj == "." || obj == "/" {
+		obj = ""
 	}
 
-	fid, err := c9.Walk(n)
+	fid, err := c9.Walk(obj)
 	if err != nil {
 		warp9.Error("error:%v", err)
 		return
 	}
-	defer c9.Clunk(fid)
 
 	if fid.Qid.Type&warp9.QTDIR > 0 {
 		// read directory
@@ -74,7 +71,7 @@ func Ls(c9 *warp9.Clnt) {
 			warp9.Error("error:%v", err)
 			return
 		}
-
+		defer f.Close()
 		for {
 			d, err := f.Readdir(0)
 			if d == nil || len(d) == 0 || err != nil {
@@ -99,8 +96,9 @@ func Ls(c9 *warp9.Clnt) {
 	}
 }
 
-func Stat(c9 *warp9.Clnt) {
-	d, err := c9.Stat(flag.Arg(1))
+// Stat perform stat operation on named object and write to stdout
+func Stat(c9 *warp9.Clnt, obj string) {
+	d, err := c9.Stat(obj)
 	if err != nil {
 		log.Println("Error", err)
 		return
@@ -122,9 +120,9 @@ func Stat(c9 *warp9.Clnt) {
 
 }
 
-// get: perform a "Get" operation. open/read-fully/clunk. like cat.
-func Get(c9 *warp9.Clnt) {
-	data, qid, err := c9.Get(flag.Arg(1), 0)
+// Get perform a "Get" operation. open/read-fully/clunk. like cat.
+func Get(c9 *warp9.Clnt, obj string) {
+	data, qid, err := c9.Get(obj, 0)
 	if err != nil {
 		log.Fatalf("Error:%v\n", err)
 	}
@@ -134,10 +132,10 @@ func Get(c9 *warp9.Clnt) {
 	os.Stdout.Write(data[0:])
 }
 
-// write: read from stdin until eof and write to object
-func Write(c9 *warp9.Clnt) {
+// Write read from stdin until eof and write to object
+func Write(c9 *warp9.Clnt, obj string) {
 
-	o, err := c9.Open(flag.Arg(1), warp9.OWRITE)
+	o, err := c9.Open(obj, warp9.OWRITE)
 	if err != nil {
 		warp9.Error("Open Error:%v\n", err)
 		return
@@ -153,9 +151,9 @@ func Write(c9 *warp9.Clnt) {
 	fmt.Printf("bytes written:%v\n", c)
 }
 
-// ctl: write remaining arguments to object. Aguments "Join"-ed with " " between.
-func Ctl(c9 *warp9.Clnt) {
-	o, err := c9.Open(flag.Arg(1), warp9.ORDWR)
+// Ctl write remaining arguments to object. Aguments "Join"-ed with " " between.
+func Ctl(c9 *warp9.Clnt, line []string) {
+	o, err := c9.Open(line[0], warp9.ORDWR)
 	if err != nil {
 		if err != warp9.WarpErrorNOTEXIST {
 			warp9.Error("Error:%v\n", err)
@@ -167,7 +165,7 @@ func Ctl(c9 *warp9.Clnt) {
 	defer o.Close()
 
 	//rest of command line to object
-	cmd := strings.Join(flag.Args()[2:], " ")
+	cmd := strings.Join(line[1:], " ")
 	_, e := o.Write([]byte(cmd))
 	if e != nil {
 		warp9.Error("Error:%v\n", e)

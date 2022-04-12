@@ -9,8 +9,7 @@ import (
 	"github.com/lavaorg/warp/warp9"
 )
 
-
-// called when SrvFid is destroyed 
+// called when SrvFid is destroyed
 func (srv *ServerController) FidDestroy(sfid *warp9.SrvFid) {
 
 	// if an Item is found then invoke clunk on it
@@ -33,10 +32,14 @@ func (srv *ServerController) Attach(req *warp9.SrvReq) {
 		req.RespondError(warp9.ErrorCode(warp9.Enoauth))
 		return
 	}
-
+	_, err := srv.root.Open(warp9.OREAD)
+	if err != nil {
+		req.RespondError(err)
+		return
+	}
 	req.Fid.Aux = srv.root //associate this server's root with client's fid
-	warp9.Info("req.Fid:%v, root:%v", req.Fid, srv.root)
 	qid := srv.root.GetQid()
+
 	req.RespondRattach(&qid)
 }
 
@@ -47,20 +50,23 @@ func (*ServerController) Flush(req *warp9.SrvReq) {}
 // walk method on that directory.
 // Promote the fid if successfully moved
 func (*ServerController) Walk(req *warp9.SrvReq) {
+	warp9.Debug("walk:%v", req)
 	d, ok := req.Fid.Aux.(Directory)
 	if !ok {
 		req.RespondError(warp9.ErrorCode(warp9.Enotdir))
 		return
 	}
 	if d == nil {
+		warp9.Debug("fid==nil")
 		req.RespondError(warp9.ErrorCode(warp9.Ebaduse))
 		return
 	}
 
 	tc := req.Tc
-
+	warp9.Debug("d=%v", d)
 	item, err := d.Walk(tc.Wname)
 	if err != nil {
+		warp9.Debug("fid.aux not a Directory: %T:%v", req.Fid.Aux, req.Fid.Aux)
 		req.RespondError(fsRespondError(err, warp9.ErrorCode(warp9.Enoent)))
 		return
 	}
@@ -69,7 +75,7 @@ func (*ServerController) Walk(req *warp9.SrvReq) {
 	req.RespondRwalk(&qid)
 }
 
-// Invoke the objects SetOpened(true) method.
+// Invoke the objects Open method.
 func (*ServerController) Open(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	//tc := req.Tc
@@ -84,15 +90,15 @@ func (*ServerController) Open(req *warp9.SrvReq) {
 	req.RespondRopen(&i.GetDir().Qid, iounit)
 }
 
-// invoke the object's SetOpened(false) method.
+// invoke the object's Clunk method.
 func (*ServerController) Clunk(req *warp9.SrvReq) {
 	i := req.Fid.Aux.(Item)
 	err := i.Clunk()
+	req.Fid.Aux = nil //disassociate Item from fid, regardless of clunk result
 	if err != nil {
 		req.RespondError(fsRespondError(err, warp9.ErrorCode(warp9.Eio)))
 		return
 	}
-	req.Fid.Aux = nil //disassociate Item from fid
 	req.RespondRclunk()
 }
 

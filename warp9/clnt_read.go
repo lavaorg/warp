@@ -1,8 +1,11 @@
 // Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+// Copyright 2018,2022 Larry Rau.
 
 package warp9
+
+import "io"
 
 // Reads count bytes starting from offset from the object associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
@@ -36,23 +39,26 @@ func (obj *Object) Read(buf []byte) (int, error) {
 	return n, err
 }
 
-// Reads up to len(buf) bytes from the object starting from offset.
+// ReadAt Reads up to len(buf) bytes from the object starting from offset.
 // Returns the number of bytes read, or an Error.
 func (obj *Object) ReadAt(buf []byte, offset int64) (int, error) {
 	b, err := obj.Fid.Clnt.Read(obj.Fid, uint64(offset), uint32(len(buf)))
 	if err != nil {
+		if werr, ok := err.(*WarpError); ok && werr.Equals(Eeof) {
+			err = io.EOF //note warp will not return b!=0 and eof
+		}
 		return 0, err
 	}
 
 	if len(b) == 0 {
-		return 0, WarpErrorEOF //conform to Go API for io.Reader
+		return 0, io.EOF //conform to Go API for io.Reader
 	}
-
 	copy(buf, b)
+
 	return len(b), nil
 }
 
-// Reads exactly len(buf) bytes from the Object starting from offset.
+// Readn Reads exactly len(buf) bytes from the Object starting from offset.
 // Returns the number of bytes read (could be less than len(buf) if
 // end-of-data of the object is reached), or an Error.
 func (obj *Object) Readn(buf []byte, offset uint64) (int, error) {
@@ -75,7 +81,7 @@ func (obj *Object) Readn(buf []byte, offset uint64) (int, error) {
 	return ret, nil
 }
 
-// Reads the content of the directory associated with the Object.
+// Readdir Reads the content of the directory associated with the Object.
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
@@ -89,7 +95,7 @@ func (obj *Object) Readdir(num int) ([]*Dir, error) {
 	}()
 	for {
 		n, err := obj.Read(buf)
-		if err != nil && err != WarpErrorEOF {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 
